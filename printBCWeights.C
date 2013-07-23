@@ -1,24 +1,24 @@
 void printBCWeights(int BorC=0){
 
-  /*                                                                                                                                                                             
-    This macro determines the normalization of the b and c samples relative to the QCD samples, by comparing the number of b-jets or c-jets                                      
-    The z-vertex weighting is applied b/c the b and c samples have a slightly different vertex distribution                                                                      
-                                                                                                                                                                                 
+  /*
+    This macro determines the normalization of the b and c samples relative to the QCD samples, by comparing the number of b-jets or c-jets
+    The z-vertex weighting is applied b/c the b and c samples have a slightly different vertex distribution
+
   */
 
 
   float N=8;
   float bounds[8]={30,50,65,80,100,120,170,200};
 
-  //TFile *fin=new TFile("merged_bjetAnalyzers_hiReco_offPV_pt30by3_oldHydjet_restrictMixTripletA_ipHICalibCentWeight_weighted_qcd.root");                                       
-  TFile *fin=new TFile("merged_bjetAnalyzers_hiReco_offPV_pt30by3_restrictMixTripletA_ipHICalibCentWeight_weighted_bJet.root");
+  //TFile *fin=new TFile("merged_bjetAnalyzers_hiReco_offPV_pt30by3_oldHydjet_restrictMixTripletA_ipHICalibCentWeight_weighted_qcd.root");    
+  TFile *fin=new TFile("merged_bjetAnalyzers_hiReco_offPV_pt30by3_restrictMixTripletA_ipHICalibCentWeight_weighted_bJet.root");    
   TTree *t=(TTree*)fin->Get("akPu3PFJetAnalyzer/t");
-
+    
 
   for(int it=0;it<N;it++){
 
-    //TFile *fin=new TFile(Form("cJet%d/merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight.root",(int)bounds[it]));                     
-    //TFile *fin=new TFile("merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight_weighted_cJet.root");                                    
+    //TFile *fin=new TFile(Form("cJet%d/merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight.root",(int)bounds[it]));
+    //TFile *fin=new TFile("merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight_weighted_cJet.root");    
 
     char cutname[100], cCut[100], bCut[100];
 
@@ -38,24 +38,23 @@ void printBCWeights(int BorC=0){
     if(BorC){
       t->Draw("refpt>>htemp1",cCut);
       double nc = htemp1->Integral();
-      double nc = htemp1->Integral();
-      //double nentc = t->GetEntries(cutname);                                                                                                                                   
+      //double nentc = t->GetEntries(cutname);
       t->Draw("pthat>>htemp2",cutname);
       double nentc = htemp2->Integral();
       double ratioc=0.;
       if(nentc>0)ratioc = nc/nentc;
-    ///cout<<nc<<"/"<<nentc<<"="<<ratioc<<endl;                                                                                                                                  
+    ///cout<<nc<<"/"<<nentc<<"="<<ratioc<<endl;
       cout<<ratioc<<endl;
     }
     else{
       t->Draw("refpt>>htemp1",bCut);
       double nb = htemp1->Integral();
-      //double nentb = t->GetEntries(cutname);                                                                                                                                   
+      //double nentb = t->GetEntries(cutname);
       t->Draw("pthat>>htemp2",cutname);
       double nentb = htemp2->Integral();
       double ratiob=0.;
       if(nentb>0)ratiob = nb/nentb;
-      ///cout<<nb<<"/"<<nentb<<"="<<ratiob<<endl;                                                                                                                                
+      ///cout<<nb<<"/"<<nentb<<"="<<ratiob<<endl;
       cout<<ratiob<<endl;
     }
     delete htemp1;
@@ -68,4 +67,3 @@ void printBCWeights(int BorC=0){
 
 
 }
-
