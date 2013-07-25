@@ -20,6 +20,10 @@
 
 using namespace std;
 
+//**********************************************************
+// Count the MC events to appropriately weight the pthat bins
+//**********************************************************
+
 int *countMCevents(std::string infile, int nFiles){
 
   TChain *ch = new TChain("akPu3PFJetAnalyzer/t");
@@ -43,7 +47,103 @@ int *countMCevents(std::string infile, int nFiles){
   return MCentries;
 }
 
-void analyzeTrees(int isRecopp=1, int ppPbPb=1, int isMuTrig=0, int isMC=3, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1,int useGSP=1, int jetTrig=0, int nFiles=8, bool ExpandedTree=false)
+//**********************************************************
+// Do the pthat weighting for the Heavy Flavor Jets
+//**********************************************************
+
+double *heavyJetWeighting(std::string HFfile, std::string QCDfile, int HFnfiles, int QCDnfiles, char flavor){
+
+  int nDivisions = 6;
+  double *HFweights = new double[nDivisions];
+  int weightBlocks[7] = {0,30,50,80,120,170,280};
+
+  TChain *chH = new TChain("akPu3PFJetAnalyzer/t");
+  TChain *chQCD = new TChain("akPu3PFJetAnalyzer/t");
+  std::ifstream instr(HFfile.c_str(), std::ifstream::in);
+  std::string filename;
+  for(int ifile=0; ifile<HFnfiles; ifile++){
+    instr >> filename;
+    chH->Add(filename.c_str());
+  }
+  std::ifstream instr2(QCDfile.c_str(), std::ifstream::in);
+  for(int ifile=0; ifile<QCDnfiles; ifile++){
+    instr2 >> filename;
+    chQCD->Add(filename.c_str());
+  }
+  
+  int parton_flavor=0;
+  if(flavor=='b') parton_flavor=5;
+  if(flavor=='c') parton_flavor=4;
+
+  char* cutname = new char[100];
+  char* cutfull = new char[100];
+  if(parton_flavor==5 || parton_flavor==4){
+    for(int i=0; i<nDivisions; i++){
+      sprintf(cutname,"pthat>%d&&pthat<%d&&refpt>0&&abs(jteta)<2&&abs(refparton_flavorForB)==%d",weightBlocks[i],weightBlocks[i+1],parton_flavor);
+      sprintf(cutfull,"pthat>%d&&pthat<%d&&refpt>0&&abs(jteta)<2",weightBlocks[i],weightBlocks[i+1]);
+      double qcd1 = (double)chQCD->GetEntries(cutname)/(double)chQCD->GetEntries(cutfull);
+      double h1 = (double)chH->GetEntries(cutname)/(double)chH->GetEntries(cutfull);
+      //cout << "between pthat " << weightBlocks[i] << " and " << weightBlocks[i+1] << " has " << qcd1/h1 << " norm, or " << qcd1 << " qcd bjets and " << h1 << " hf jets" << endl;
+      HFweights[i] = qcd1/h1;
+    }
+  }
+  return HFweights;
+}
+
+//**********************************************************
+// Trigger-Combine the data in order to unfold properly later
+//**********************************************************
+
+//[0] = Jet20, [1] = Jet40, [2] = Jet60, [3] = Jet80
+double trigComb(bool *triggerDecision, double *pscl){
+  double weight=0;
+  if(triggerDecision[0] && !triggerDecision[1] && !triggerDecision[2] && !triggerDecision[3]) weight = 1./(1./pscl[0]);
+  if(triggerDecision[1] && !triggerDecision[2] && !triggerDecision[3]) weight = 1./(1./pscl[0] + 1./pscl[1] - (1./(pscl[0]*pscl[1])));
+  if(triggerDecision[2] && !triggerDecision[3]) weight = 1./((1./pscl[0] + 1./pscl[1] + 1./pscl[2] - (1./(pscl[0]*pscl[1])) - (1./(pscl[1]*pscl[2])) - (1./(pscl[0]*pscl[2])) + (1./(pscl[0]*pscl[1]*pscl[2]))));
+  if(triggerDecision[3]) weight = 1.;
+
+  return weight;
+}
+
+//**********************************************************
+// "get" the trigger prescales by counting trigger overlap
+//**********************************************************
+
+double* getPscls(std::string infile, int nFiles){
+      
+  TChain *dataCH = new TChain("akPu3PFJetAnalyzer/t");
+  TChain *dataCH2 = new TChain("hltanalysis/HltTree");
+  std::ifstream instr(infile.c_str(), std::ifstream::in);
+  std::string filename;
+  for(int ifile=0; ifile<nFiles; ifile++){
+    instr >> filename;
+    dataCH->Add(filename.c_str());
+    dataCH2->Add(filename.c_str());
+  }
+  dataCH->AddFriend(dataCH2, "hltanalysis/HltTree");
+  //Set up trigger combination prescales for data
+  double ov1, ov2, ov3, ov4;
+  ov1 = dataCH->GetEntries("jtpt>85 && HLT_PAJet20_NoJetID_v1 && HLT_PAJet80_NoJetID_v1");
+  ov2 = dataCH->GetEntries("jtpt>85 && HLT_PAJet40_NoJetID_v1 && HLT_PAJet80_NoJetID_v1");
+  ov3 = dataCH->GetEntries("jtpt>85 && HLT_PAJet60_NoJetID_v1 && HLT_PAJet80_NoJetID_v1");
+  ov4 = dataCH->GetEntries("jtpt>85 && HLT_PAJet80_NoJetID_v1");
+  double *pscls = new double[4];
+  pscls[0] = ov1/ov4;
+  pscls[1] = ov2/ov4;
+  pscls[2] = ov3/ov4;
+  pscls[3] = 1.;
+  return pscls;
+}
+
+//**********************************************************
+// ~~~ MAIN PROGRAM ~~~
+//**********************************************************
+//
+// Update 25 July 2013 - Added weighting for pp data.  Now "weight" branch in data = trig weight and "weight" branch in MC = pthat bin weight
+//
+//**********************************************************
+
+void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1,int useGSP=1, int jetTrig=0, int nFiles=8, bool ExpandedTree=false)
 {
   // isMC=0 --> Real data, ==1 --> QCD, ==2 --> bJet, ==3 --> cJet
   Float_t minJetPt=30.;
@@ -66,6 +166,9 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=1, int isMuTrig=0, int isMC=3, int 
   TFile *fin=NULL;
   std::string infile;
   int *MCentr = NULL;
+  double *HFweight = NULL;  
+  double *pscls = NULL;
+
   //PbPb File load
   if(ppPbPb){
     if(isMC==0){
@@ -81,9 +184,22 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=1, int isMuTrig=0, int isMC=3, int 
     if(!isMC){ 
       infile = "ppNewJEC_BForest.txt";
     }
-    else{ 
+    else if(isMC==1){
       infile = "pythiaMCfilelist.txt";
     }
+    else if(isMC==2){
+      infile = "pythiaBJetMClist.txt";
+    }
+    else if(isMC==3){
+      infile = "pythiaCJetMClist.txt";
+    }
+    else{ 
+      cout << "I don't understand this MC number!" << endl;
+      exit(0);
+    }
+  }
+  if(!isMC && !ppPbPb){
+    pscls = getPscls(infile,nFiles);
   }
   
   int dupRuns[6] = {181912,181913,181938,181950,181985,182124};
@@ -228,7 +344,9 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=1, int isMuTrig=0, int isMC=3, int 
       if(isMC)fout=new TFile("histos/ppMC_ppReco_muTrig_noIPupperCut.root","recreate");
       else fout=new TFile("histos/ppdata_ppReco_muTrig_noIPupperCut.root","recreate");
     } else if ( isRecopp&&!isMuTrig) { // pp reco, jet triggered
-      if(isMC)fout=new TFile("histos/ppMC_ppReco_jetTrig_noIPupperCut.root","recreate");
+      if(isMC==1) fout=new TFile("histos/ppMC_ppReco_QCDjetTrig_noIPupperCut.root","recreate");
+      else if(isMC==2) fout=new TFile("histos/ppMC_ppReco_BjetTrig_noIPupperCut.root","recreate");
+      else if(isMC==3) fout=new TFile("histos/ppMC_ppReco_CjetTrig_noIPupperCut.root","recreate");
       else fout=new TFile("histos/ppdata_ppReco_jetTrig_noIPupperCut.root","recreate");
     } else if (!isRecopp&& isMuTrig) { // hi reco, muon triggered
       if(isMC)fout=new TFile("histos/ppMC_hiReco_muTrig_noIPupperCut.root","recreate");
@@ -519,7 +637,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=1, int isMuTrig=0, int isMC=3, int 
   hipClosest2Jet->Sumw2(); hipClosest2JetB->Sumw2(); hipClosest2JetC->Sumw2(); hipClosest2JetL->Sumw2(); 
 
   Double_t t_jtpt, t_jteta, t_jtphi, t_rawpt, t_refpt, t_discr_prob, t_discr_ssvHighEff, t_discr_ssvHighPur, t_discr_csvSimple, t_svtxm;
-  Double_t t_pthat, t_weight;
+  Double_t t_pthat, t_weight, t_trgWeight;
   Int_t t_refparton_flavorForB;
   Int_t t_HLT_Jet20, t_HLT_Jet40, t_HLT_Jet60, t_HLT_Jet80, t_HLT_Jet100;
   Int_t trigIndex, t_bin;
@@ -558,7 +676,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=1, int isMuTrig=0, int isMC=3, int 
     nt->Branch("HLT_Jet100_noJetID_v1",&t_HLT_Jet100,"HLT_Jet100_noJetID_v1/I");
   }
 
-  if(!isMC)nt->Branch("pthat",&t_pthat,"pthat/D");
+  if(isMC) nt->Branch("pthat",&t_pthat,"pthat/D");
   nt->Branch("weight",&t_weight,"weight/D");
 
   TNtuple *ntMuReq;
@@ -662,7 +780,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=1, int isMuTrig=0, int isMC=3, int 
     }
 
     t->SetBranchAddress("mupt",mupt);
-    t->SetBranchAddress("muptPF",muptPF);    
+    if(ppPbPb) t->SetBranchAddress("muptPF",muptPF);    
 
     /*
       t->SetBranchAddress("mue",mue);
@@ -693,12 +811,24 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=1, int isMuTrig=0, int isMC=3, int 
 	  cout << "Weight not found in Tree. Calculating..." << endl;
 	  useWeight=0;
 	}
-	if(!ppPbPb)MCentr = countMCevents(infile, nFiles);
-	//for(int i=0; i<10; i++){
+	if(!ppPbPb){
+	  MCentr = countMCevents(infile, nFiles);
+	  if(isMC>1){
+	    for(int lm=6; lm<10; lm++){
+	      MCentr[5] += MCentr[lm]; //hack because we go to pthat bin 540 in QCD jet and only pthat bin 170 in b/c jet MC
+	    }
+	  }
+	  if(isMC==2) HFweight = heavyJetWeighting(infile,"pythiaMCfilelist.txt",nFiles,9,'b');
+	  if(isMC==3) HFweight = heavyJetWeighting(infile,"pythiaMCfilelist.txt",nFiles,9,'c');
+	  for(int i=0; i<6; i++){
+	    cout << "MCentr[" << i << "]: " << MCentr[i] << endl;
+	    cout << "HFweight[" << i << "]: " << HFweight[i] << endl;
+	  }
+	  //for(int i=0; i<10; i++){
 	  // cout << "MCentr["<<i<<"]: " << *(MCentr+i) << endl;
-	//}
+	  //}
+	}
       }
-
       /*
 	t->SetBranchAddress("ngen",&ngen);
 	t->SetBranchAddress("genmatchindex",genmatchindex);
@@ -877,12 +1007,17 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=1, int isMuTrig=0, int isMC=3, int 
       
       if(useWeight){
 	if(isMC)w=weight;
-	else{
+	else if(ppPbPb){
 	  if(jetTrig==2){
 	    if(hltBit[10]) w=0.;
 	    else w=1./8.93333857823361388e-01;
 	  }
 	}
+      }
+      //trigger weighting in pp data
+      if(!ppPbPb && !isMC){
+	bool trgDec[4] = {(bool)t_HLT_Jet20, (bool)t_HLT_Jet40, (bool)t_HLT_Jet60, (bool)t_HLT_Jet80};
+	w = trigComb(trgDec, pscls);
       }
 
       if(ppPbPb){
@@ -895,10 +1030,14 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=1, int isMuTrig=0, int isMC=3, int 
       if(isMC){
 	t_pthat=pthat;
 	
-	if(!ppPbPb){
+	if(!ppPbPb && isMC){
 	  int j=0;
-	  while(pthat>pthatbin[j] && j<9) j++;	  
-	  w = wght[j]/MCentr[j];
+	  while(pthat>pthatbin[j] && j<9) j++;
+	  int k = (j<5 ? j : 5);
+	    w = (wght[k]/MCentr[k]);
+	    w *= HFweight[k]; //do HF reweighting for b/c samples
+	  }
+	  else w = (wght[j]/MCentr[j]);
 	  nPthatEntries[j]++;
 	}
       }
