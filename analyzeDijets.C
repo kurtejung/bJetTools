@@ -8,18 +8,12 @@
 #include "TNtuple.h"
 #include "TROOT.h"
 
-void analyzeDijets(int ppPbPb=1, int isMC=2, int useWeight=1, int doNtuples=1,  int jetTrig=2)
+void analyzeDijets(int ppPbPb=1, int isMC=0, int useWeight=1, int doNtuples=1, int jetTrig=2)
 {
   // isMC=0 --> Real data, ==1 --> QCD, ==2 --> bJet, ==3 --> cJet
-  Float_t minJetPt=0.;
-  if(jetTrig==1) minJetPt=80.;
-  if(jetTrig==2) minJetPt=65.;
+  Float_t minJetPt=30.;
 
-  //if(!ppPbPb) minJetPt=65;
-  Float_t maxJetEta=2;
-
-  
-  TFile *fin;
+  TFile *fin=NULL;
 
   if(ppPbPb){
     if(isMC==0){
@@ -70,14 +64,17 @@ void analyzeDijets(int ppPbPb=1, int isMC=2, int useWeight=1, int doNtuples=1,  
   Float_t         discr_probb[1000];
   Float_t         discr_tcHighEff[1000];
   Float_t         discr_tcHighPur[1000];
+  /*
   Int_t           nsvtx[1000];
   Int_t           svtxntrk[1000];
   Float_t         svtxdl[1000];
   Float_t         svtxdls[1000];
-  Float_t         svtxm[1000];
   Float_t         svtxpt[1000];
   Int_t           nIPtrk[1000];
+  */
+  Float_t         svtxm[1000];
   Int_t           nselIPtrk[1000];
+  /*
   Int_t   nIP;
   Int_t   ipJetIndex[10000];
   Float_t ipPt[10000];
@@ -90,6 +87,7 @@ void analyzeDijets(int ppPbPb=1, int isMC=2, int useWeight=1, int doNtuples=1,  
   Float_t ipDist2Jet[10000];
   Float_t ipDist2JetSig[10000];
   Float_t ipClosest2Jet[10000];
+  */
   Float_t         mue[1000];
   Float_t         mupt[1000];
   Float_t         muptPF[1000];
@@ -158,12 +156,14 @@ void analyzeDijets(int ppPbPb=1, int isMC=2, int useWeight=1, int doNtuples=1,  
   t->SetBranchAddress("discr_probb",discr_probb);
   t->SetBranchAddress("discr_tcHighEff",discr_tcHighEff);
   t->SetBranchAddress("discr_tcHighPur",discr_tcHighPur);
+
+  t->SetBranchAddress("svtxm",svtxm);
+
   /*
   t->SetBranchAddress("nsvtx",nsvtx);
   t->SetBranchAddress("svtxntrk",svtxntrk);
   t->SetBranchAddress("svtxdl",svtxdl);
   t->SetBranchAddress("svtxdls",svtxdls);
-  t->SetBranchAddress("svtxm",svtxm);
   t->SetBranchAddress("svtxpt",svtxpt);
  
   t->SetBranchAddress("nIPtrk",nIPtrk);
@@ -222,7 +222,7 @@ void analyzeDijets(int ppPbPb=1, int isMC=2, int useWeight=1, int doNtuples=1,  
   tSkim->SetBranchAddress("collSell",&collSell);
 
 
-  TFile *fout;
+  TFile *fout=NULL;
   if(ppPbPb){
     if(isMC==0){
       if(jetTrig==1)fout = new TFile("dijetNtuples/dijetNtuple_PbPbdata_pt30by3_jpHICalibRepass_jet80.root","recreate");
@@ -239,7 +239,7 @@ void analyzeDijets(int ppPbPb=1, int isMC=2, int useWeight=1, int doNtuples=1,  
 
   TNtuple *nt;
   if(isMC) nt= new TNtuple("nt","","bin:pt1:pt2:pt3:eta1:eta2:eta3:phi1:phi2:phi3:jetProb1:jetProb2:jetProb3:ssvHE1:ssvHE2:ssvHE3:ssvHP1:ssvHP2:ssvHP3:csvSimple1:csvSimple2:csvSimple3:svtxm1:svtxm2:svtxm3:refpt1:refpt2:refpt3:flavor1:flavor2:flavor3:isGSP1:isGSP2:isGSP3:w:pthat:jet55:jet65:jet80");
-  else nt= new TNtuple("nt","","bin:pt1:pt2:pt3:eta1:eta2:eta3:phi1:phi2:phi3:jetProb1:jetProb2:jetProb3:ssvHE1:ssvHE2:ssvHE3:ssvHP1:ssvHP2:ssvHP3:csvSimple1:csvSimple2:csvSimple3:svtxm1:svtxm2:svtxm3");
+  else nt= new TNtuple("nt","","bin:pt1:pt2:pt3:eta1:eta2:eta3:phi1:phi2:phi3:jetProb1:jetProb2:jetProb3:ssvHE1:ssvHE2:ssvHE3:ssvHP1:ssvHP2:ssvHP3:csvSimple1:csvSimple2:csvSimple3:svtxm1:svtxm2:svtxm3:w:jet55:jet65:jet80");
 
 
 
@@ -248,7 +248,7 @@ void analyzeDijets(int ppPbPb=1, int isMC=2, int useWeight=1, int doNtuples=1,  
 
   Long64_t nentries = t->GetEntries();
 
-  int gspCounter=0;
+  //int gspCounter=0;
 
   for (Long64_t i=0; i<nentries;i++) {
 
@@ -293,10 +293,9 @@ void analyzeDijets(int ppPbPb=1, int isMC=2, int useWeight=1, int doNtuples=1,  
     bool isNoise=false;
 
     for(int ij=0; ij<nref; ij++){	  
-      if(jtpt[ij]>4000&&fabs(jteta[ij])<2)cout<<" hello "<<muptPF[0]<<" "<<mupt[0]<<endl; 
       if(jtpt[ij]>minJetPt&&fabs(jteta[ij])<2){
 	if(neutralMax[ij]/(neutralMax[ij]+chargedMax[ij]+photonMax[ij])>0.975){
-	  //cout<<" cleaning event with jet of  "<<jtpt[ij]<<", eta "<<jteta[ij]<<" noise = "<<neutralMax[ij]/(neutralMax[ij]+chargedMax[ij]+photonMax[ij])<<endl;
+	  cout<<" cleaning event with jet of  "<<jtpt[ij]<<", eta "<<jteta[ij]<<" noise = "<<neutralMax[ij]/(neutralMax[ij]+chargedMax[ij]+photonMax[ij])<<endl;
 	  isNoise=true;
 	}
 	if(muptPF[ij]>10&&mupt[ij]/muptPF[ij]<0.75){
@@ -308,7 +307,7 @@ void analyzeDijets(int ppPbPb=1, int isMC=2, int useWeight=1, int doNtuples=1,  
     if(isNoise) continue;
 
     
-    if(!isMC&&ppPbPb){
+    if(!isMC&&ppPbPb&&jetTrig==1){
       tmu->GetEntry(i);
       
       bool foundEvt = false;
@@ -336,9 +335,19 @@ void analyzeDijets(int ppPbPb=1, int isMC=2, int useWeight=1, int doNtuples=1,  
 
 
     
-    double w=1.;
-    if(isMC&&useWeight) w=weight;
+    double w=1.;    
+    if(useWeight){
+      if(isMC)w=weight;
+      else{
+	if(jetTrig==2){
+	  if(hltBit[10]) w=0.;
+	  else w=1./8.99750849280821718e-01/9.88980273650237107e-01;  // run averaged pre-scale and fraction of processed events
+	}
+      }
+    }
     
+
+
     int useEvent=0;
     
     //find leading jet
@@ -463,13 +472,10 @@ void analyzeDijets(int ppPbPb=1, int isMC=2, int useWeight=1, int doNtuples=1,  
 	  dummy[31]=isGSP1; dummy[32]=isGSP2; dummy[33]= isGSP3;
 	  dummy[34]=w; dummy[35]=pthat; 	      
 	  dummy[36]=hltBit[8]; dummy[37]=hltBit[9]; dummy[38]=hltBit[10];
-	  if(isMC&&minJetPt>65){
-	    if(pthat<50) dummy[38]=0;
-	  }
 	  nt->Fill(dummy);
 	}
 	else{
-	  float dummy[25];
+	  float dummy[29];
 	  dummy[0]=bin;
 	  dummy[1]=pt1; dummy[2]=pt2; dummy[3]=pt3;
 	  dummy[4]=eta1; dummy[5]=eta2; dummy[6]=eta3;
@@ -479,6 +485,8 @@ void analyzeDijets(int ppPbPb=1, int isMC=2, int useWeight=1, int doNtuples=1,  
 	  dummy[16]=ssvHP1; dummy[17]=ssvHP2; dummy[18]= ssvHP3;
 	  dummy[19]=csvSimple1; dummy[20]=csvSimple2; dummy[21]= csvSimple3;
 	  dummy[22]=svtxm1; dummy[23]=svtxm2; dummy[24]= svtxm3;	      
+	  dummy[25]=w; 
+	  dummy[26]=hltBit[8]; dummy[27]=hltBit[9]; dummy[28]=hltBit[10];
 	  nt->Fill(dummy);
 	}
       }	
