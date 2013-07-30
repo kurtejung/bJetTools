@@ -6,7 +6,7 @@
 void createReco2GenMatrix(){
 
 
-  TFile *fin = new TFile("~/bTagging442p5/CMSSW_4_4_2_patch5/src/UserCode/kjung/bTaggerCode/histos/PbPbBMC_pt30by3_ipHICalibCentWeight_noTrig.root");
+  TFile *fin = new TFile("histos/PbPbBMC_pt30by3_ipHICalibCentWeight_noTrig.root");
 
   TTree *t=(TTree*) fin->Get("nt");
   
@@ -16,7 +16,7 @@ void createReco2GenMatrix(){
   hRecoVsGen->Sumw2();
 
   double jtpt, jteta, refpt, discr_ssvHighEff, pthat, weight;
-  int refparton_flavorForB, bin, trigIndex;
+  int refparton_flavorForB, bin, jet65;
   
   t->SetBranchAddress("jtpt",&jtpt);
   t->SetBranchAddress("jteta",&jteta);
@@ -25,19 +25,19 @@ void createReco2GenMatrix(){
   t->SetBranchAddress("pthat",&pthat);
   t->SetBranchAddress("refparton_flavorForB",&refparton_flavorForB);
   t->SetBranchAddress("bin",&bin);
-  t->SetBranchAddress("trigIndex",&trigIndex);
+  t->SetBranchAddress("jet65",&jet65);
   t->SetBranchAddress("weight",&weight);
 
   for(int i=0;i<t->GetEntries();i++){
     t->GetEntry(i);
 
-    if(trigIndex<2) continue;
+    if(!jet65) continue;
     if(abs(refparton_flavorForB)!=5) continue;
     if(discr_ssvHighEff<2)continue;
     if(abs(jteta)>2) continue;
     
 
-    // cutoffs to keep stat errors under control
+    // cutoffs to keep stat errors under control -- still needed?
     if(jtpt>100&&pthat<50) continue;
     if(jtpt>120&&pthat<65) continue;
     if(jtpt>150&&pthat<80) continue;
@@ -47,7 +47,7 @@ void createReco2GenMatrix(){
 
   }
 
-  TFile *fout=new TFile("temp.root","recreate");
+  TFile *fout=new TFile("outputTowardsFinal/reco2GenMatrix.root","recreate");
 
   hRecoVsGen->Write();
 
