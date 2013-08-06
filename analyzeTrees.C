@@ -101,7 +101,6 @@ double trigComb(bool *triggerDecision, double *pscl){
   if(triggerDecision[1] && !triggerDecision[2] && !triggerDecision[3]) weight = 1./(1./pscl[0] + 1./pscl[1] - (1./(pscl[0]*pscl[1])));
   if(triggerDecision[2] && !triggerDecision[3]) weight = 1./((1./pscl[0] + 1./pscl[1] + 1./pscl[2] - (1./(pscl[0]*pscl[1])) - (1./(pscl[1]*pscl[2])) - (1./(pscl[0]*pscl[2])) + (1./(pscl[0]*pscl[1]*pscl[2]))));
   if(triggerDecision[3]) weight = 1.;
-
   return weight;
 }
 
@@ -128,9 +127,9 @@ double* getPscls(std::string infile, int nFiles){
   ov3 = dataCH->GetEntries("jtpt>85 && HLT_PAJet60_NoJetID_v1 && HLT_PAJet80_NoJetID_v1");
   ov4 = dataCH->GetEntries("jtpt>85 && HLT_PAJet80_NoJetID_v1");
   double *pscls = new double[4];
-  pscls[0] = ov1/ov4;
-  pscls[1] = ov2/ov4;
-  pscls[2] = ov3/ov4;
+  pscls[0] = ov4/ov1;
+  pscls[1] = ov4/ov2;
+  pscls[2] = ov4/ov3;
   pscls[3] = 1.;
   return pscls;
 }
@@ -143,7 +142,7 @@ double* getPscls(std::string infile, int nFiles){
 //
 //**********************************************************
 
-void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1,int useGSP=1, int jetTrig=0, int nFiles=8, bool ExpandedTree=false)
+void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1,int useGSP=1, int jetTrig=0, int nFiles=10, bool ExpandedTree=false, bool usePUsub=0)
 {
   // isMC=0 --> Real data, ==1 --> QCD, ==2 --> bJet, ==3 --> cJet
   Float_t minJetPt=30.;
@@ -159,7 +158,6 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
   if(!ppPbPb) cbin=-1;
   int useWeight=1;
   int pthatbin[10] = {30,50,80,120,170,280,370,460,540,10000};
-  int nPthatEntries[10] = {0,0,0,0,0,0,0,0,0,0};
   double w = 1.;
   double wght[10]={0.2034, 1.075E-02, 1.025E-03, 9.865E-05, 1.129E-05, 1.465E-06, 5.323E-08, 5.934E-09, 8.125E-10, 1.467E-10};
 
@@ -182,7 +180,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
   
   else{ //pp File Load
     if(!isMC){ 
-      infile = "ppNewJEC_BForest.txt";
+      infile = "ppBForestList.txt";
     }
     else if(isMC==1){
       infile = "pythiaMCfilelist.txt";
@@ -276,6 +274,10 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
   Int_t 	  HLT_PAJet60_NoJetID_v1;
   Int_t 	  HLT_PAJet80_NoJetID_v1;
   Int_t 	  HLT_PAJet100_NoJetID_v1;
+  Int_t           pVertexFilterCutGplusUpsPP;
+  Int_t           pcollisionEventSelection;
+  Int_t           pHBHENoiseFilter;
+  Int_t           pprimaryvertexFilter;
 
   /*
     Int_t           ngen;
@@ -637,9 +639,8 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
   hipClosest2Jet->Sumw2(); hipClosest2JetB->Sumw2(); hipClosest2JetC->Sumw2(); hipClosest2JetL->Sumw2(); 
 
   Double_t t_jtpt, t_jteta, t_jtphi, t_rawpt, t_refpt, t_discr_prob, t_discr_ssvHighEff, t_discr_ssvHighPur, t_discr_csvSimple, t_svtxm;
-  Double_t t_pthat, t_weight, t_trgWeight;
+  Double_t t_pthat, t_weight;
   Int_t t_refparton_flavorForB;
-  Int_t t_HLT_Jet20, t_HLT_Jet40, t_HLT_Jet60, t_HLT_Jet80, t_HLT_Jet100;
   Int_t trigIndex, t_bin;
 
   Int_t t_nIP;
@@ -669,11 +670,12 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
     nt->Branch("ipJetIndex",t_ipJetIndex,"ipJetIndex[nIP]/I");
   }
   if(!ppPbPb){
-    nt->Branch("HLT_Jet20_noJetID_v1",&t_HLT_Jet20,"HLT_Jet20_noJetID_v1/I");
-    nt->Branch("HLT_Jet40_noJetID_v1",&t_HLT_Jet40,"HLT_Jet40_noJetID_v1/I");
-    nt->Branch("HLT_Jet60_noJetID_v1",&t_HLT_Jet60,"HLT_Jet60_noJetID_v1/I");
-    nt->Branch("HLT_Jet80_noJetID_v1",&t_HLT_Jet80,"HLT_Jet80_noJetID_v1/I");
-    nt->Branch("HLT_Jet100_noJetID_v1",&t_HLT_Jet100,"HLT_Jet100_noJetID_v1/I");
+    nt->Branch("HLT_Jet20_noJetID_v1",&HLT_PAJet20_NoJetID_v1,"HLT_Jet20_noJetID_v1/I");
+    nt->Branch("HLT_Jet40_noJetID_v1",&HLT_PAJet40_NoJetID_v1,"HLT_Jet40_noJetID_v1/I");
+    nt->Branch("HLT_Jet60_noJetID_v1",&HLT_PAJet60_NoJetID_v1,"HLT_Jet60_noJetID_v1/I");
+    nt->Branch("HLT_Jet80_noJetID_v1",&HLT_PAJet80_NoJetID_v1,"HLT_Jet80_noJetID_v1/I");
+    nt->Branch("HLT_Jet100_noJetID_v1",&HLT_PAJet100_NoJetID_v1,"HLT_Jet100_noJetID_v1/I");
+    nt->Branch("pVertexFilterCutGplusUpsPP",&pVertexFilterCutGplusUpsPP,"pVertexFilterCutGplusUpsPP/I");
   }
 
   if(isMC) nt->Branch("pthat",&t_pthat,"pthat/D");
@@ -716,7 +718,9 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
       std::cout << "File: " << filename << std::endl;
       fin = TFile::Open(filename.c_str());
     }
-    TTree *t = (TTree*) fin->Get("akPu3PFJetAnalyzer/t");
+    TTree *t;
+    if(usePUsub) t = (TTree*) fin->Get("akPu3PFJetAnalyzer/t");
+    else t = (TTree*) fin->Get("ak3PFJetAnalyzer/t");
     TTree *tSkim = (TTree*) fin->Get("skimanalysis/HltTree");
     TTree *tEvt = NULL;
     if(!ppPbPb) tEvt = (TTree*) fin->Get("hiEvtAnalyzer/HiTree");
@@ -780,7 +784,8 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
     }
 
     t->SetBranchAddress("mupt",mupt);
-    if(ppPbPb) t->SetBranchAddress("muptPF",muptPF);    
+    if(ppPbPb) t->SetBranchAddress("muptPF",muptPF);
+    if(!ppPbPb) t->SetBranchAddress("pVertexFilterCutGplusUpsPP",&pVertexFilterCutGplusUpsPP);
 
     /*
       t->SetBranchAddress("mue",mue);
@@ -805,13 +810,15 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
       t->SetBranchAddress("refparton_flavorForB",refparton_flavorForB);
 
       TBranch* tweight;
-      if(ifile==0 && isMC){
+      if(isMC){
 	tweight = t->GetBranch("weight");
 	if(!tweight){
-	  cout << "Weight not found in Tree. Calculating..." << endl;
-	  useWeight=0;
+	  if(ifile==0){
+	    cout << "Weight not found in Tree. Calculating..." << endl;
+	    useWeight=0;
+	  }
 	}
-	if(!ppPbPb){
+	if(!ppPbPb && !useWeight && ifile==0){
 	  MCentr = countMCevents(infile, nFiles);
 	  if(isMC>1){
 	    for(int lm=6; lm<10; lm++){
@@ -820,13 +827,13 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
 	  }
 	  if(isMC==2) HFweight = heavyJetWeighting(infile,"pythiaMCfilelist.txt",nFiles,9,'b');
 	  if(isMC==3) HFweight = heavyJetWeighting(infile,"pythiaMCfilelist.txt",nFiles,9,'c');
-	  for(int i=0; i<6; i++){
+	  /*for(int i=0; i<6; i++){
 	    cout << "MCentr[" << i << "]: " << MCentr[i] << endl;
 	    cout << "HFweight[" << i << "]: " << HFweight[i] << endl;
 	  }
-	  //for(int i=0; i<10; i++){
-	  // cout << "MCentr["<<i<<"]: " << *(MCentr+i) << endl;
-	  //}
+	  for(int i=0; i<10; i++){
+	   cout << "MCentr["<<i<<"]: " << *(MCentr+i) << endl;
+	   }*/
 	}
       }
       /*
@@ -871,6 +878,9 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
       t->SetBranchAddress("HLT_PAJet60_NoJetID_v1",&HLT_PAJet60_NoJetID_v1);
       t->SetBranchAddress("HLT_PAJet80_NoJetID_v1",&HLT_PAJet80_NoJetID_v1);
       t->SetBranchAddress("HLT_PAJet100_NoJetID_v1",&HLT_PAJet100_NoJetID_v1);
+      t->SetBranchAddress("pcollisionEventSelection",&pcollisionEventSelection);
+      t->SetBranchAddress("pHBHENoiseFilter",&pHBHENoiseFilter);
+      t->SetBranchAddress("pprimaryvertexFilter",&pprimaryvertexFilter);
     }
 
     Long64_t nentries = t->GetEntries();
@@ -893,6 +903,14 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
 	  //cout<<" selection failed, pvSel="<<pvSel<<", hbheNoiseSel="<<hbheNoiseSel<<" , collSell="<<collSell<<endl;
 	  continue;
 	}
+      }
+      if(!ppPbPb){
+        if(!isMC){
+          if(!pHBHENoiseFilter || !pprimaryvertexFilter) continue;
+        }
+        else{
+          if(!pHBHENoiseFilter) continue;
+        }
       }
       
       t->GetEntry(i);
@@ -926,19 +944,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
 	if(jetTrig==1&&!hltBit[10]) continue;
 	if(jetTrig==2&&!hltBit[9]) continue;
       }
-      else{
-	t_HLT_Jet20=HLT_PAJet20_NoJetID_v1;
-	t_HLT_Jet40=HLT_PAJet40_NoJetID_v1;
-	t_HLT_Jet60=HLT_PAJet60_NoJetID_v1;
-	t_HLT_Jet80=HLT_PAJet80_NoJetID_v1;
-	t_HLT_Jet100=HLT_PAJet100_NoJetID_v1;
-      }
-      /*
-      //if(isMC&&ppPbPb){
-      if(isMC&&minJetPt>65){
-	if(pthat<50) continue;
-      }
-      */
+
       if(fabs(vz)>15.) continue;
       
       // pileup rejection
@@ -1016,7 +1022,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
       }
       //trigger weighting in pp data
       if(!ppPbPb && !isMC){
-	bool trgDec[4] = {(bool)t_HLT_Jet20, (bool)t_HLT_Jet40, (bool)t_HLT_Jet60, (bool)t_HLT_Jet80};
+	bool trgDec[4] = {(bool)HLT_PAJet20_NoJetID_v1, (bool)HLT_PAJet40_NoJetID_v1, (bool)HLT_PAJet60_NoJetID_v1, (bool)HLT_PAJet80_NoJetID_v1};
 	w = trigComb(trgDec, pscls);
       }
 
@@ -1029,19 +1035,15 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
       
       if(isMC){
 	t_pthat=pthat;
-	
-	if(!ppPbPb && isMC){
-	  int j=0;
-	  while(pthat>pthatbin[j] && j<9) j++;
+	int j=0;
+	while(pthat>pthatbin[j] && j<9) j++;
+	if(isMC>1){
 	  int k = (j<5 ? j : 5);
-	    w = (wght[k]/MCentr[k]);
-	    w *= HFweight[k]; //do HF reweighting for b/c samples
-	  }
-	  else w = (wght[j]/MCentr[j]);
-	  nPthatEntries[j]++;
+	  w = (wght[k]/MCentr[k]);
+	  w *= HFweight[k]; //do HF reweighting for b/c samples
 	}
+	else w = (wght[j]/MCentr[j]);
       }
-      
       t_weight=w;	  
       
       int useEvent=0;
@@ -1079,7 +1081,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
 	    t_discr_ssvHighPur=discr_ssvHighPur[ij];
 	    t_discr_csvSimple=discr_csvSimple[ij];
 	    t_svtxm=svtxm[ij];
-	  
+	    
 	    //Find jet tracks that correspond to the jet & apply proximity cuts
 	    if(ExpandedTree){
 	      t_nIP=nselIPtrk[ij];
@@ -1511,7 +1513,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
 	  hbin->Fill(bin,xSecWeight*vzWeight);
 	}
 	else hbin->Fill(bin);
-      
+	
 	if(isMC){
 	  hvzw->Fill(vz,w);
 	  if(ppPbPb)hvz->Fill(vz,xSecWeight*centWeight);
@@ -1519,9 +1521,8 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
 	}
 	else hvz->Fill(vz);
       }
-    
+      
     }
-    
   }
   fout->cd();
 
