@@ -275,7 +275,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
   Int_t 	  HLT_PAJet80_NoJetID_v1;
   Int_t 	  HLT_PAJet100_NoJetID_v1;
   Int_t           pVertexFilterCutGplusUpsPP;
-  Int_t           pcollisionEventSelection;
+  Int_t           pPAcollisionEventSelectionPA;
   Int_t           pHBHENoiseFilter;
   Int_t           pprimaryvertexFilter;
 
@@ -730,7 +730,8 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
     if(!t || !tSkim || (!tEvt&&!ppPbPb) || (!tHlt&&!ppPbPb)){ cout << "Error! Can't find one of the trees!" << endl; exit(0);}
      
     if(tEvt) t->AddFriend("hiEvtAnalyzer/HiTree");    
-    if(tHlt) t->AddFriend("hltanalysis/HltTree");     
+    if(tHlt) t->AddFriend("hltanalysis/HltTree");
+    if(tSkim) t->AddFriend("skimanalysis/HltTree");
      
     t->SetBranchAddress("evt",&evt);
     if(cbin != -1 || ppPbPb) t->SetBranchAddress("bin",&bin);
@@ -878,7 +879,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
       t->SetBranchAddress("HLT_PAJet60_NoJetID_v1",&HLT_PAJet60_NoJetID_v1);
       t->SetBranchAddress("HLT_PAJet80_NoJetID_v1",&HLT_PAJet80_NoJetID_v1);
       t->SetBranchAddress("HLT_PAJet100_NoJetID_v1",&HLT_PAJet100_NoJetID_v1);
-      t->SetBranchAddress("pcollisionEventSelection",&pcollisionEventSelection);
+      t->SetBranchAddress("pPAcollisionEventSelectionPA",&pPAcollisionEventSelectionPA);
       t->SetBranchAddress("pHBHENoiseFilter",&pHBHENoiseFilter);
       t->SetBranchAddress("pprimaryvertexFilter",&pprimaryvertexFilter);
     }
@@ -906,10 +907,10 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
       }
       if(!ppPbPb){
         if(!isMC){
-          if(!pHBHENoiseFilter || !pprimaryvertexFilter) continue;
+          if(!pHBHENoiseFilter || !pprimaryvertexFilter || !pPAcollisionEventSelectionPA) continue;
         }
         else{
-          if(!pHBHENoiseFilter) continue;
+          if(!pHBHENoiseFilter || !pPAcollisionEventSelectionPA) continue;
         }
       }
       
