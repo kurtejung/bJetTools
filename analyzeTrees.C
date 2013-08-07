@@ -35,18 +35,19 @@ int *countMCevents(std::string infile, int nFiles, bool usePUsub){
     instr >> filename;
     ch->Add(filename.c_str());
   }
-  int *MCentries = new int[11];
-  MCentries[0] = ch->GetEntries("pthat<30");
-  MCentries[1] = ch->GetEntries("pthat>=30 && pthat<50");
-  MCentries[2] = ch->GetEntries("pthat>=50 && pthat<80");
-  MCentries[3] = ch->GetEntries("pthat>=80 && pthat<120");
-  MCentries[4] = ch->GetEntries("pthat>=120 && pthat<170");
-  MCentries[5] = ch->GetEntries("pthat>=170 && pthat<220");
-  MCentries[6] = ch->GetEntries("pthat>=220 && pthat<280");
-  MCentries[7] = ch->GetEntries("pthat>=280 && pthat<370");
-  MCentries[8] = ch->GetEntries("pthat>=370 && pthat<460");
-  MCentries[9] = ch->GetEntries("pthat>=460 && pthat<540");
-  MCentries[10] = ch->GetEntries("pthat>=540 && pthat<10000");
+  int *MCentries = new int[12];
+  MCentries[0] = ch->GetEntries("pthat<15");
+  MCentries[1] = ch->GetEntries("pthat>=15 && pthat<30");
+  MCentries[2] = ch->GetEntries("pthat>=30 && pthat<50");
+  MCentries[3] = ch->GetEntries("pthat>=50 && pthat<80");
+  MCentries[4] = ch->GetEntries("pthat>=80 && pthat<120");
+  MCentries[5] = ch->GetEntries("pthat>=120 && pthat<170");
+  MCentries[6] = ch->GetEntries("pthat>=170 && pthat<220");
+  MCentries[7] = ch->GetEntries("pthat>=220 && pthat<280");
+  MCentries[8] = ch->GetEntries("pthat>=280 && pthat<370");
+  MCentries[9] = ch->GetEntries("pthat>=370 && pthat<460");
+  MCentries[10] = ch->GetEntries("pthat>=460 && pthat<540");
+  MCentries[11] = ch->GetEntries("pthat>=540 && pthat<10000");
   return MCentries;
 }
 
@@ -56,9 +57,9 @@ int *countMCevents(std::string infile, int nFiles, bool usePUsub){
 
 double *heavyJetWeighting(std::string HFfile, std::string QCDfile, int HFnfiles, int QCDnfiles, char flavor, bool usePUsub){
 
-  int nDivisions = 6;
+  const int nDivisions = 7;
   double *HFweights = new double[nDivisions];
-  int weightBlocks[7] = {0,30,50,80,120,170,280};
+  const int weightBlocks[nDivisions+1] = {0,15,30,50,80,120,170,280};
 
   TChain *chH = NULL;
   TChain *chQCD = NULL;
@@ -168,10 +169,10 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
   // cbin =2 --> 50-100%
   if(!ppPbPb) cbin=-1;
   int useWeight=1;
-  const int QCDpthatBins = 10;
-  const int HFpthatBins = 5;
+  const int QCDpthatBins = 11;
+  const int HFpthatBins = 6;
 
-  int pthatbin[QCDpthatBins+1] = {30,50,80,120,170,220,280,370,460,540,10000};
+  int pthatbin[QCDpthatBins+1] = {15,30,50,80,120,170,220,280,370,460,540,10000};
   double w = 1.;
   double wght[QCDpthatBins+1]={0.2034, 1.075E-02, 1.025E-03, 9.865E-05, 1.129E-05, 1.465E-06, 2.837E-07, 5.323E-08, 5.934E-09, 8.125E-10, 1.467E-10};
 
@@ -1055,10 +1056,10 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
 	while(pthat>pthatbin[j] && j<QCDpthatBins) j++;
 	if(isMC>1){
 	  int k = (j<HFpthatBins ? j : HFpthatBins);
-	  w = (wght[k]/MCentr[k]);
+	  w = (wght[k-1]/MCentr[k]);
 	  w *= HFweight[k]; //do HF reweighting for b/c samples
 	}
-	else w = (wght[j]/MCentr[j]);
+	else w = (wght[j-1]/MCentr[j]); //wght[0] = pthat15, MCentr[0] = pthat<15.  I know it's dumb - bear with me.
       }
       t_weight=w;	  
       

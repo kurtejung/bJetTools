@@ -31,18 +31,19 @@ int *countMCevents(std::string infile, int nFiles, bool usePUsub){
     instr >> filename;
     ch->Add(filename.c_str());
   }
-  int *MCentries = new int[11];
-  MCentries[0] = ch->GetEntries("pthat<30");
-  MCentries[1] = ch->GetEntries("pthat>=30 && pthat<50");
-  MCentries[2] = ch->GetEntries("pthat>=50 && pthat<80");
-  MCentries[3] = ch->GetEntries("pthat>=80 && pthat<120");
-  MCentries[4] = ch->GetEntries("pthat>=120 && pthat<170");
-  MCentries[5] = ch->GetEntries("pthat>=170 && pthat<220");
-  MCentries[6] = ch->GetEntries("pthat>=220 && pthat<280");
-  MCentries[7] = ch->GetEntries("pthat>=280 && pthat<370");
-  MCentries[8] = ch->GetEntries("pthat>=370 && pthat<460");
-  MCentries[9] = ch->GetEntries("pthat>=460 && pthat<540");
-  MCentries[10] = ch->GetEntries("pthat>=540 && pthat<10000");
+  int *MCentries = new int[12];
+  MCentries[0] = ch->GetEntries("pthat<15");
+  MCentries[1] = ch->GetEntries("pthat>=15 && pthat<30");
+  MCentries[2] = ch->GetEntries("pthat>=30 && pthat<50");
+  MCentries[3] = ch->GetEntries("pthat>=50 && pthat<80");
+  MCentries[4] = ch->GetEntries("pthat>=80 && pthat<120");
+  MCentries[5] = ch->GetEntries("pthat>=120 && pthat<170");
+  MCentries[6] = ch->GetEntries("pthat>=170 && pthat<220");
+  MCentries[7] = ch->GetEntries("pthat>=220 && pthat<280");
+  MCentries[8] = ch->GetEntries("pthat>=280 && pthat<370");
+  MCentries[9] = ch->GetEntries("pthat>=370 && pthat<460");
+  MCentries[10] = ch->GetEntries("pthat>=460 && pthat<540");
+  MCentries[11] = ch->GetEntries("pthat>=540 && pthat<10000");
   return MCentries;
 }
 
@@ -52,9 +53,9 @@ int *countMCevents(std::string infile, int nFiles, bool usePUsub){
 
 double *heavyJetWeighting(std::string HFfile, std::string QCDfile, int HFnfiles, int QCDnfiles, char flavor, bool usePUsub){
 
-  const int nDivisions = 6;
+  const int nDivisions = 7;
   double *HFweights = new double[nDivisions];
-  const int weightBlocks[nDivisions+1] = {0,30,50,80,120,170,220};
+  const int weightBlocks[8] = {0,15,30,50,80,120,170,280};
 
   TChain *chH = NULL;
   TChain *chQCD = NULL;
@@ -177,11 +178,11 @@ bool DataSort(const JetObject &data1 , const JetObject &data2){
 
 void analyzeDijets(int nFiles=10, int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int jetTrig=0, int cbin=-1, bool ExpandedTree=false, bool usePUsub=0)
 {
-  const int QCDpthatBins = 10;
-  const int HFpthatBins = 5;
+  const int QCDpthatBins = 11;
+  const int HFpthatBins = 6;
 
-  int pthatbin[QCDpthatBins+1] = {30,50,80,120,170,220,280,370,460,540,10000};
-  int nPthatEntries[QCDpthatBins+1] = {0,0,0,0,0,0,0,0,0,0,0};
+  int pthatbin[QCDpthatBins+1] = {15,30,50,80,120,170,220,280,370,460,540,10000};
+  int nPthatEntries[QCDpthatBins+1] = {0,0,0,0,0,0,0,0,0,0,0,0};
   double w = 1.;
   double wght[QCDpthatBins+1]={0.2034, 1.075E-02, 1.025E-03, 9.865E-05, 1.129E-05, 1.465E-06, 2.837E-07, 5.323E-08, 5.934E-09, 8.125E-10, 1.467E-10};
 
@@ -757,7 +758,8 @@ void analyzeDijets(int nFiles=10, int isRecopp=1, int ppPbPb=0, int isMuTrig=0, 
     if(!t || !tSkim || !tEvt){ cout << "Warning! Can't find one of the trees!" << endl; exit(0);}
 
     if(tEvt) t->AddFriend("hiEvtAnalyzer/HiTree");    
-    t->AddFriend("hltanalysis/HltTree"); 
+    t->AddFriend("hltanalysis/HltTree");
+    t->AddFriend("skimanalysis/HltTree");
 
     t->SetBranchAddress("evt",&evt);
     if(cbin != -1) t->SetBranchAddress("bin",&bin);           
@@ -914,6 +916,8 @@ void analyzeDijets(int nFiles=10, int isRecopp=1, int ppPbPb=0, int isMuTrig=0, 
         }
       }
 
+      if(!HLT_PAJet20_NoJetID_v1 && !HLT_PAJet40_NoJetID_v1 && !HLT_PAJet60_NoJetID_v1 && !HLT_PAJet80_NoJetID_v1) continue;
+
       if(ppPbPb){
 	if(cbin==-1){
 	  // do nothing
@@ -1034,10 +1038,10 @@ void analyzeDijets(int nFiles=10, int isRecopp=1, int ppPbPb=0, int isMuTrig=0, 
 	if(j>10) cout << "uh oh" << endl;
 	if(isMC>1){
 	  int k = (j<=HFpthatBins ? j : HFpthatBins);
-	  w = (wght[k]/MCentr[k]);
+	  w = (wght[k-1]/MCentr[k]);
 	  w *= HFweight[k]; //do HF reweighting for b/c samples
 	}
-	else w = (wght[j]/MCentr[j]);
+	else w = (wght[j-1]/MCentr[j]);
       }
       t_weight=w;
 
