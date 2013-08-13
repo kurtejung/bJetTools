@@ -20,45 +20,23 @@
 
 using namespace std;
 
-//**********************************************************
-// Count the MC events to appropriately weight the pthat bins
-//**********************************************************
+// ******* GLOBAL DECLARATIONS **********
+const int QCDpthatBins = 11;
+const int HFpthatBins = 5;
+const int dataFiles = 10;
+//***************************************
 
-int *countMCevents(std::string infile, int nFiles, bool usePUsub){
-
-  TChain *ch = NULL;
-  if(usePUsub) ch = new TChain("akPu3PFJetAnalyzer/t");
-  else ch = new TChain("ak3PFJetAnalyzer/t");
-  std::ifstream instr(infile.c_str(), std::ifstream::in);
-  std::string filename;
-  for(int ifile=0; ifile<nFiles; ifile++){
-    instr >> filename;
-    ch->Add(filename.c_str());
-  }
-  int *MCentries = new int[11];
-  MCentries[0] = ch->GetEntries("pthat<30");
-  MCentries[1] = ch->GetEntries("pthat>=30 && pthat<50");
-  MCentries[2] = ch->GetEntries("pthat>=50 && pthat<80");
-  MCentries[3] = ch->GetEntries("pthat>=80 && pthat<120");
-  MCentries[4] = ch->GetEntries("pthat>=120 && pthat<170");
-  MCentries[5] = ch->GetEntries("pthat>=170 && pthat<220");
-  MCentries[6] = ch->GetEntries("pthat>=220 && pthat<280");
-  MCentries[7] = ch->GetEntries("pthat>=280 && pthat<370");
-  MCentries[8] = ch->GetEntries("pthat>=370 && pthat<460");
-  MCentries[9] = ch->GetEntries("pthat>=460 && pthat<540");
-  MCentries[10] = ch->GetEntries("pthat>=540 && pthat<10000");
-  return MCentries;
-}
 
 //**********************************************************
 // Do the pthat weighting for the Heavy Flavor Jets
 //**********************************************************
 
+//(HFfile,infile,HFpthatBins,QCDpthatBins,'b',usePUsub)
 double *heavyJetWeighting(std::string HFfile, std::string QCDfile, int HFnfiles, int QCDnfiles, char flavor, bool usePUsub){
 
-  int nDivisions = 6;
+  const int nDivisions = 11;
   double *HFweights = new double[nDivisions];
-  int weightBlocks[7] = {0,30,50,80,120,170,280};
+  const int weightBlocks[nDivisions+1] = {15,30,50,80,120,170,220,280,370,460,540,1200};
 
   TChain *chH = NULL;
   TChain *chQCD = NULL;
@@ -86,19 +64,125 @@ double *heavyJetWeighting(std::string HFfile, std::string QCDfile, int HFnfiles,
   if(flavor=='b') parton_flavor=5;
   if(flavor=='c') parton_flavor=4;
 
-  char* cutname = new char[100];
-  char* cutfull = new char[100];
+  char* cutname = new char[200];
+  char* cutfull = new char[200];
+  TH1D *bjetEntr = new TH1D("bjetEntr","",1,0,1200);
+  TH1D *QCDjetEntr = new TH1D("QCDjetEntr","",1,0,1200);
+
+  TH1D *bjetEntrFULL = new TH1D("bjetEntrFULL","",1,0,1200);
+  TH1D *QCDjetEntrFULL = new TH1D("QCDjetEntrFULL","",1,0,1200);
   if(parton_flavor==5 || parton_flavor==4){
     for(int i=0; i<nDivisions; i++){
       sprintf(cutname,"pthat>%d&&pthat<%d&&refpt>0&&abs(jteta)<2&&abs(refparton_flavorForB)==%d",weightBlocks[i],weightBlocks[i+1],parton_flavor);
-      sprintf(cutfull,"pthat>%d&&pthat<%d&&refpt>0&&abs(jteta)<2",weightBlocks[i],weightBlocks[i+1]);
-      double qcd1 = (double)chQCD->GetEntries(cutname)/(double)chQCD->GetEntries(cutfull);
-      double h1 = (double)chH->GetEntries(cutname)/(double)chH->GetEntries(cutfull);
-      //cout << "between pthat " << weightBlocks[i] << " and " << weightBlocks[i+1] << " has " << qcd1/h1 << " norm, or " << qcd1 << " qcd bjets and " << h1 << " hf jets" << endl;
-      HFweights[i] = qcd1/h1;
+      sprintf(cutfull,"pthat>%d&&pthat<%d",weightBlocks[i],weightBlocks[i+1]);
+      cout << "jet cut: "<< cutname << endl;
+      cout << "evt cut: "<< cutfull << endl;
+      chQCD->Draw("jtpt>>QCDjetEntr",cutname);
+      chH->Draw("jtpt>>bjetEntr",cutname);
+      double qcd1 = (double)QCDjetEntr->Integral()/(double)chQCD->GetEntries(cutfull);
+      double h1 = (double)bjetEntr->Integral()/(double)chH->GetEntries(cutfull);
+      cout << "between pthat " << weightBlocks[i] << " and " << weightBlocks[i+1] << " has " << qcd1/h1 << " norm, or " << qcd1 << " qcd bjets and " << h1 << " hf jets" << endl;
+      if(qcd1!=qcd1 || h1!=h1) HFweights[i]=0; //check on NaN via IEEE recommended method
+      else{
+	cout << "QCD bjet per event, pthat " << i << ": " << qcd1 << endl;
+	cout << "HF bjet per event, pthat " << i << ": " << h1 << endl;
+	HFweights[i] = h1/qcd1;
+      }
+      bjetEntr->Reset();
+      QCDjetEntr->Reset();
     }
   }
+  delete bjetEntr;
+  delete QCDjetEntr;
   return HFweights;
+}
+
+//**********************************************************
+// Count the MC events to appropriately weight the pthat bins
+//**********************************************************
+
+int *countMCevents(std::string infile, std::string HFfile, bool usePUsub, int isMC){
+
+  TChain *ch = NULL;
+  if(usePUsub) ch = new TChain("akPu3PFJetAnalyzer/t");
+  else ch = new TChain("ak3PFJetAnalyzer/t");
+  std::ifstream instr(infile.c_str(), std::ifstream::in);
+  std::ifstream HFstr(HFfile.c_str(), std::ifstream::in);
+  std::string filename;
+  for(int ifile=0; ifile<QCDpthatBins; ifile++){
+    instr >> filename;
+    ch->Add(filename.c_str());
+  }
+  int *MCentries = new int[12];
+  MCentries[0] = ch->GetEntries("pthat<15");
+  MCentries[1] = ch->GetEntries("pthat>=15 && pthat<30");
+  MCentries[2] = ch->GetEntries("pthat>=30 && pthat<50");
+  MCentries[3] = ch->GetEntries("pthat>=50 && pthat<80");
+  MCentries[4] = ch->GetEntries("pthat>=80 && pthat<120");
+  MCentries[5] = ch->GetEntries("pthat>=120 && pthat<170");
+  MCentries[6] = ch->GetEntries("pthat>=170 && pthat<220");
+  MCentries[7] = ch->GetEntries("pthat>=220 && pthat<280");
+  MCentries[8] = ch->GetEntries("pthat>=280 && pthat<370");
+  MCentries[9] = ch->GetEntries("pthat>=370 && pthat<460");
+  MCentries[10] = ch->GetEntries("pthat>=460 && pthat<540");
+  MCentries[11] = ch->GetEntries("pthat>=540 && pthat<1200");
+
+  for(int i=0; i<12; i++){
+    cout << "QCD MCentries[" << i << "]: " << MCentries[i] << endl;
+  }
+
+  if(isMC>1){
+    TChain *HFch = NULL;
+    if(usePUsub) HFch = new TChain("akPu3PFJetAnalyzer/t");
+    else HFch = new TChain("ak3PFJetAnalyzer/t");
+    for(int ifile=0; ifile<HFpthatBins; ifile++){
+      HFstr >> filename;
+      HFch->Add(filename.c_str());
+    }
+    double *HFweight = NULL;
+    if(isMC==2) HFweight = heavyJetWeighting(HFfile,infile,HFpthatBins,QCDpthatBins,'b',usePUsub);
+    if(isMC==3) HFweight = heavyJetWeighting(HFfile,infile,HFpthatBins,QCDpthatBins,'c',usePUsub);
+    for(int i=0; i<11; i++){
+      cout << "HFweight[" << i << "]: " << HFweight[i] << endl;
+    }
+    
+    double tempEntr[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
+    
+    /* MCentries[0] += (double)HFch->GetEntries("pthat<15")*0;
+    MCentries[1] += (double)HFch->GetEntries("pthat>=15 && pthat<30")*HFweight[0];
+    MCentries[2] += (double)HFch->GetEntries("pthat>=30 && pthat<50")*HFweight[1];
+    MCentries[3] += (double)HFch->GetEntries("pthat>=50 && pthat<80")*HFweight[2];
+    MCentries[4] += (double)HFch->GetEntries("pthat>=80 && pthat<120")*HFweight[3];
+    MCentries[5] += (double)HFch->GetEntries("pthat>=120 && pthat<170")*HFweight[4];
+    MCentries[6] += (double)HFch->GetEntries("pthat>=170 && pthat<220")*HFweight[5];
+    MCentries[7] += (double)HFch->GetEntries("pthat>=220 && pthat<280")*HFweight[6];
+    MCentries[8] += (double)HFch->GetEntries("pthat>=280 && pthat<370")*HFweight[7];
+    MCentries[9] += (double)HFch->GetEntries("pthat>=370 && pthat<460")*HFweight[8];
+    MCentries[10] += (double)HFch->GetEntries("pthat>=460 && pthat<540")*HFweight[9];
+    MCentries[11] += (double)HFch->GetEntries("pthat>=540 && pthat<1200")*HFweight[10];*/
+    tempEntr[0] = HFch->GetEntries("pthat<15");
+    tempEntr[1] = HFch->GetEntries("pthat>=15 && pthat<30");
+    tempEntr[2] = HFch->GetEntries("pthat>=30 && pthat<50");
+    tempEntr[3] = HFch->GetEntries("pthat>=50 && pthat<80");
+    tempEntr[4] = HFch->GetEntries("pthat>=80 && pthat<120");
+    tempEntr[5] = HFch->GetEntries("pthat>=120 && pthat<170");
+    tempEntr[6] = HFch->GetEntries("pthat>=170 && pthat<220");
+    tempEntr[7] = HFch->GetEntries("pthat>=220 && pthat<280");
+    tempEntr[8] = HFch->GetEntries("pthat>=280 && pthat<370");
+    tempEntr[9] = HFch->GetEntries("pthat>=370 && pthat<460");
+    tempEntr[10] = HFch->GetEntries("pthat>=460 && pthat<540");
+    tempEntr[11] = HFch->GetEntries("pthat>=540 && pthat<1200");
+
+    for(int i=1; i<12; i++){
+      cout << "HF entries[" << i << "]: " << tempEntr[i] << endl;
+      MCentries[i] += tempEntr[i]*HFweight[i-1];
+    }
+    for(int i=0; i<12; i++){
+      cout << "Effective MCentries[" << i << "]: " << MCentries[i] << endl;
+    }
+  }
+  
+  return MCentries;
 }
 
 //**********************************************************
@@ -108,9 +192,9 @@ double *heavyJetWeighting(std::string HFfile, std::string QCDfile, int HFnfiles,
 //[0] = Jet20, [1] = Jet40, [2] = Jet60, [3] = Jet80
 double trigComb(bool *triggerDecision, double *pscl){
   double weight=0;
-  if(triggerDecision[0] && !triggerDecision[1] && !triggerDecision[2] && !triggerDecision[3]) weight = 1./(1./pscl[0]);
-  if(triggerDecision[1] && !triggerDecision[2] && !triggerDecision[3]) weight = 1./(1./pscl[0] + 1./pscl[1] - (1./(pscl[0]*pscl[1])));
-  if(triggerDecision[2] && !triggerDecision[3]) weight = 1./((1./pscl[0] + 1./pscl[1] + 1./pscl[2] - (1./(pscl[0]*pscl[1])) - (1./(pscl[1]*pscl[2])) - (1./(pscl[0]*pscl[2])) + (1./(pscl[0]*pscl[1]*pscl[2]))));
+  // if(triggerDecision[0] && !triggerDecision[1] && !triggerDecision[2] && !triggerDecision[3]) weight = 1./(1./pscl[0]); //Removing finnicky Jet20 sample
+  if(triggerDecision[1] && !triggerDecision[2] && !triggerDecision[3]) weight = 1./(1./pscl[1]);
+  if(triggerDecision[2] && !triggerDecision[3]) weight = 1./(1./pscl[1] + 1./pscl[2] - (1./(pscl[1]*pscl[2])));
   if(triggerDecision[3]) weight = 1.;
   return weight;
 }
@@ -153,10 +237,10 @@ double* getPscls(std::string infile, int nFiles, bool usePUsub){
 // ~~~ MAIN PROGRAM ~~~
 //**********************************************************
 
-void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1,int useGSP=1, int jetTrig=0, int nFiles=10, bool ExpandedTree=false, bool usePUsub=0)
+void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=1, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1,int useGSP=2, int jetTrig=0, bool ExpandedTree=false, bool usePUsub=0)
 {
   // isMC=0 --> Real data, ==1 --> QCD, ==2 --> bJet, ==3 --> cJet
-  Float_t minJetPt=30.;
+  Float_t minJetPt=15.;
   
   if (isMuTrig) minJetPt=30;
   Float_t maxJetEta=2;
@@ -168,17 +252,17 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
   // cbin =2 --> 50-100%
   if(!ppPbPb) cbin=-1;
   int useWeight=1;
-  const int QCDpthatBins = 10;
-  const int HFpthatBins = 5;
 
-  int pthatbin[QCDpthatBins+1] = {30,50,80,120,170,220,280,370,460,540,10000};
+  cout << "Analyzing Trees! Assuming " << QCDpthatBins << " QCD pthat bins, and " << HFpthatBins << " B/C pthat bins." << endl;
+
+  int pthatbin[QCDpthatBins+1] = {15,30,50,80,120,170,220,280,370,460,540,1200};
   double w = 1.;
   double wght[QCDpthatBins+1]={0.2034, 1.075E-02, 1.025E-03, 9.865E-05, 1.129E-05, 1.465E-06, 2.837E-07, 5.323E-08, 5.934E-09, 8.125E-10, 1.467E-10};
 
   TFile *fin=NULL;
   std::string infile;
+  std::string HFfile;
   int *MCentr = NULL;
-  double *HFweight = NULL;  
   double *pscls = NULL;
 
   //PbPb File load
@@ -196,22 +280,22 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
     if(!isMC){ 
       infile = "ppBForestList.txt";
     }
-    else if(isMC==1){
+    else if(isMC){
       infile = "pythiaMCfilelist.txt";
-    }
-    else if(isMC==2){
-      infile = "pythiaBJetMClist.txt";
-    }
-    else if(isMC==3){
-      infile = "pythiaCJetMClist.txt";
-    }
-    else{ 
-      cout << "I don't understand this MC number!" << endl;
-      exit(0);
+      if(isMC==2){
+	HFfile = "pythiaBJetMClist.txt";
+      }
+      else if(isMC==3){
+	HFfile = "pythiaCJetMClist.txt";
+      }
+      else if(isMC>3){ 
+	cout << "I don't understand this MC number!" << endl;
+	exit(0);
+      }
     }
   }
   if(!isMC && !ppPbPb){
-    pscls = getPscls(infile,nFiles,usePUsub);
+    pscls = getPscls(infile,QCDpthatBins,usePUsub);
   }
   
   int dupRuns[6] = {181912,181913,181938,181950,181985,182124};
@@ -223,6 +307,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
   Int_t           evt;
   Int_t           run;
   Int_t           bin;
+  Int_t           lumi;
   Float_t         hf;
   Float_t           vz;
   Int_t           nref;
@@ -367,10 +452,10 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
       else fout=new TFile("histos/ppdata_ppReco_akPu3PF_jetTrig_noIPupperCut.root","recreate");
     }
     else if( isRecopp&& !isMuTrig && !usePUsub){
-      if(isMC==1) fout=new TFile("histos/ppMC_ppReco_ak3PF_QCDjetTrig_noIPupperCut.root","recreate");
-      else if(isMC==2) fout=new TFile("histos/ppMC_ppReco_ak3PF_BjetTrig_noIPupperCut.root","recreate");
-      else if(isMC==3) fout=new TFile("histos/ppMC_ppReco_ak3PF_CjetTrig_noIPupperCut.root","recreate");
-      else fout=new TFile("histos/ppdata_ppReco_ak3PF_jetTrig_noIPupperCut.root","recreate");
+      if(isMC==1) fout=new TFile("histos/ppMC_ppReco_ak3PF_gsp2_QCDjetTrig_noIPupperCut.root","recreate");
+      else if(isMC==2) fout=new TFile("histos/ppMC_ppReco_ak3PF_gsp2_BjetTrig_noIPupperCut.root","recreate");
+      else if(isMC==3) fout=new TFile("histos/ppMC_ppReco_ak3PF_gsp2_CjetTrig_noIPupperCut.root","recreate");
+      else fout=new TFile("histos/ppdata_ppReco_ak3PF_gsp2_jetTrig_noIPupperCut.root","recreate");
     }
     else if (!isRecopp&& isMuTrig) { // hi reco, muon triggered
       if(isMC)fout=new TFile("histos/ppMC_hiReco_muTrig_noIPupperCut.root","recreate");
@@ -732,12 +817,27 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
   }     
    
   std::ifstream instr(infile.c_str(), std::ifstream::in);
+  std::ifstream HFstr(HFfile.c_str(), std::ifstream::in);
   std::string filename;
+  int nFiles=0;
   if(ppPbPb) nFiles=1;
+  else if(isMC){
+    nFiles=QCDpthatBins;
+    if(isMC>1) nFiles+=HFpthatBins;
+  }
+  else{
+    nFiles=dataFiles;
+  }
   for(int ifile=0; ifile<nFiles; ifile++){
-     
+    
+    //Add b/c statistics to the HF statistics
     if(!ppPbPb){
-      instr >> filename;
+      if((isMC && ifile<QCDpthatBins) || !isMC){
+	instr >> filename;
+      }
+      else if(isMC && ifile>=QCDpthatBins){
+	HFstr >> filename;
+      }
       std::cout << "File: " << filename << std::endl;
       fin = TFile::Open(filename.c_str());
     }
@@ -757,8 +857,9 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
     if(tSkim) t->AddFriend("skimanalysis/HltTree");
      
     t->SetBranchAddress("evt",&evt);
+    t->SetBranchAddress("lumi",&lumi);
     if(cbin != -1 || ppPbPb) t->SetBranchAddress("bin",&bin);
-    if(!isMC) tmu->SetBranchAddress("Run",&run);
+    if(!isMC) t->SetBranchAddress("run",&run);
     if(ppPbPb) t->SetBranchAddress("hf",&hf);
     t->SetBranchAddress("vz",&vz);           
     t->SetBranchAddress("nref",&nref);
@@ -843,21 +944,15 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
 	  }
 	}
 	if(!ppPbPb && !useWeight && ifile==0){
-	  MCentr = countMCevents(infile, nFiles, usePUsub);
-	  if(isMC>1){
-	    for(int lm=HFpthatBins+1; lm<QCDpthatBins+1; lm++){
-	      MCentr[HFpthatBins] += MCentr[lm]; //hack because we go to pthat bin 540 in QCD jet and only pthat bin 170 in b/c jet MC
-	    }
-	  }
-	  if(isMC==2) HFweight = heavyJetWeighting(infile,"pythiaMCfilelist.txt",nFiles,QCDpthatBins,'b',usePUsub);
-	  if(isMC==3) HFweight = heavyJetWeighting(infile,"pythiaMCfilelist.txt",nFiles,QCDpthatBins,'c',usePUsub);
-	  /*for(int i=0; i<6; i++){
-	    cout << "MCentr[" << i << "]: " << MCentr[i] << endl;
-	    cout << "HFweight[" << i << "]: " << HFweight[i] << endl;
-	    }
-	    for(int i=0; i<10; i++){
+	  MCentr = countMCevents(infile, HFfile, usePUsub, isMC);
+	  // if(isMC>1){
+	  //  for(int lm=HFpthatBins+2; lm<QCDpthatBins+1; lm++){
+	  //    MCentr[HFpthatBins] += MCentr[lm]; //hack because we go to pthat bin 540 in QCD jet and only pthat bin 170 in b/c jet MC
+	  //  }
+	  // }
+	  for(int i=0; i<10; i++){
 	    cout << "MCentr["<<i<<"]: " << *(MCentr+i) << endl;
-	    }*/
+	  }
 	}
       }
     }
@@ -900,12 +995,13 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
     Long64_t nentries = t->GetEntries();
 
     int gspCounter=0;
-     
+    //nentries=10;
     for (Long64_t i=0; i<nentries;i++) {
        
       if (i%100000==0) cout<<" i = "<<i<<" out of "<<nentries<<" ("<<(int)(100*(float)i/(float)nentries)<<"%)"<<endl; 
       
       tSkim->GetEntry(i);
+      t->GetEntry(i);
       if(ppPbPb && isMC){
 	// temporarily remove cuts from MC
 	if(!pvSel||!spikeSel) continue; //hbheNoise doesn't work in mixed events
@@ -918,6 +1014,12 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
 	  continue;
 	}
       }
+
+      //Cut to remove events that correspond to the twiki "good events" but not the golden lumi filter
+      if(!isMC){
+	if(((int)run==211821 && lumi>=57 && lumi<370) || ((int)run==211821 && lumi>420)) continue;
+      }
+
       if(!ppPbPb){
         if(!isMC){
           if(!pHBHENoiseFilter || !pprimaryvertexFilter || !pPAcollisionEventSelectionPA) continue;
@@ -926,10 +1028,8 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
           if(!pHBHENoiseFilter || !pPAcollisionEventSelectionPA) continue;
         }
       }
-      
-      t->GetEntry(i);
 
-      if(!HLT_PAJet20_NoJetID_v1 && !HLT_PAJet40_NoJetID_v1 && !HLT_PAJet60_NoJetID_v1 && !HLT_PAJet80_NoJetID_v1) continue;
+      if(!HLT_PAJet40_NoJetID_v1 && !HLT_PAJet60_NoJetID_v1 && !HLT_PAJet80_NoJetID_v1) continue;
       
       if(ppPbPb){
 	if(cbin==-1){
@@ -1049,16 +1149,24 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
 	else trigIndex=0;
       }
       
+      //Do the weighting = x-sec / Nentries, where Nentries is weighted differently for B/C jets and QCD jets
       if(isMC){
 	t_pthat=pthat;
 	int j=0;
 	while(pthat>pthatbin[j] && j<QCDpthatBins) j++;
-	if(isMC>1){
-	  int k = (j<HFpthatBins ? j : HFpthatBins);
-	  w = (wght[k]/MCentr[k]);
-	  w *= HFweight[k]; //do HF reweighting for b/c samples
-	}
-	else w = (wght[j]/MCentr[j]);
+	//	if(isMC>1 && ifile>=QCDpthatBins){
+	  // cout << "pthat: "<< pthat << endl;
+	  //cout << "bin: "<< j << endl;
+	  /*int k = (j<HFpthatBins+1 ? j : HFpthatBins+1); //WATCH THIS! IF YOU ADD AN HF pthat-15 sample, this must be FIXED!!
+	    w = (wght[k-1]/MCentr[j]);*/
+	  //cout << "weight: "<< wght[k-1] << endl;
+	  //cout << "MCentr: "<< MCentr[j] << endl;
+	  // w *= HFweight[k-1]; //do HF reweighting for b/c samples (changed in MCcounter - added QCD and B/C samples together)
+	  //if(pthat>220) continue;
+	//	}
+	//	else{
+	  w = (wght[j-1]/MCentr[j]); //wght[0] = pthat>15, MCentr[0] = pthat<15.  I know it's dumb - bear with me.
+	  //	}
       }
       t_weight=w;	  
       
