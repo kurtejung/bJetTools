@@ -141,23 +141,51 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
 
  //plotting style stuff
 
- hLTJP->SetMarkerColor(2);
- hWorkingPointUp->SetMarkerColor(3);
- hWorkingPointDown->SetMarkerColor(7);
- hDataDriven->SetMarkerColor(6);
- hCharm->SetMarkerColor(4);
- hGlueUp->SetMarkerColor(kOrange+1);
- hGlueDown->SetMarkerColor(kOrange+1);
+ hLTJP->SetMarkerColor(kRed+2);
+ hWorkingPointUp->SetMarkerColor(kSpring+2);
+ hWorkingPointDown->SetMarkerColor(kGreen+2);
+ hDataDriven->SetMarkerColor(kMagenta+2);
+ hCharm->SetMarkerColor(kCyan+2);
+ hGlueUp->SetMarkerColor(kYellow+2);
+ hGlueDown->SetMarkerColor(kOrange+2);
  
- hLTJP->SetLineColor(2);
- hWorkingPointUp->SetLineColor(3);
- hWorkingPointDown->SetLineColor(7);
- hDataDriven->SetLineColor(6);
- hCharm->SetLineColor(4);
- hGlueUp->SetLineColor(kOrange+1);
- hGlueDown->SetLineColor(kOrange+1);
+ hLTJP->SetLineColor(kRed+2);
+ hWorkingPointUp->SetLineColor(kSpring+2);
+ hWorkingPointDown->SetLineColor(kGreen+2);
+ hDataDriven->SetLineColor(kMagenta+2);
+ hCharm->SetLineColor(kCyan+2);
+ hGlueUp->SetLineColor(kYellow+2);
+ hGlueDown->SetLineColor(kOrange+2);
  
- 
+ if(!plotSymmetrized){
+   hLTJP->SetMarkerStyle(24);
+   hWorkingPointUp->SetMarkerStyle(26);
+   hWorkingPointDown->SetMarkerStyle(32);
+   hDataDriven->SetMarkerStyle(3);
+   hCharm->SetMarkerStyle(4);
+   hGlueUp->SetMarkerStyle(2);
+   hGlueDown->SetMarkerStyle(5);
+
+  hLTJP->SetLineStyle(7);
+  hWorkingPointUp->SetLineStyle(6);
+  hWorkingPointDown->SetLineStyle(8);
+  hDataDriven->SetLineStyle(3);
+  hCharm->SetLineStyle(4);
+  hGlueUp->SetLineStyle(2);
+  hGlueDown->SetLineStyle(5);
+   
+  hLTJP->SetLineWidth(3);
+  hWorkingPointUp->SetLineWidth(3);
+  hWorkingPointDown->SetLineWidth(3);
+  hDataDriven->SetLineWidth(3);
+  hCharm->SetLineWidth(3);
+  hGlueUp->SetLineWidth(3);
+  hGlueDown->SetLineWidth(3);
+
+ }
+
+
+
  hDefault->Draw();
  hLTJP->Draw("same");
  
@@ -276,83 +304,97 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
   hFracLTJP->GetYaxis()->SetTitle("Relative Error");
   hFracLTJP->GetXaxis()->SetNdivisions(505);
 
-  hFracLTJP->SetMaximum(0.5);
-  hFracLTJP->SetMinimum(-0.5);
-  hFracLTJP->SetFillColor(hFracLTJP->GetMarkerColor());
-  hFracLTJP->SetFillStyle(3018);
-  hFracLTJP->Draw("h");
+  hFracLTJP->SetMaximum(0.6);
+  hFracLTJP->SetMinimum(-0.4);
+  hFracLTJP->SetFillColor(hFracLTJP->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracLTJP->SetFillStyle(3003);
+  hFracLTJP->Draw("");
 
   hFracLTJPInv->SetMaximum(0.5);
   hFracLTJPInv->SetMinimum(-0.5);
-  hFracLTJPInv->SetFillColor(hFracLTJP->GetMarkerColor());
-  hFracLTJPInv->SetFillStyle(3018);
+  hFracLTJPInv->SetFillColor(hFracLTJP->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracLTJPInv->SetFillStyle(3003);
   if(plotSymmetrized)hFracLTJPInv->Draw("h,same");
 
 
-  hFracWorkingPointUp->SetFillColor(hFracWorkingPointUp->GetMarkerColor());
-  hFracWorkingPointUp->SetFillStyle(3006);
+  hFracWorkingPointUp->SetFillColor(hFracWorkingPointUp->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracWorkingPointUp->SetFillStyle(3006);
   if(!plotSymmetrized)hFracWorkingPointUp->Draw("h,same");
-  hFracWorkingPointDown->SetFillColor(hFracWorkingPointDown->GetMarkerColor());
-  hFracWorkingPointDown->SetFillStyle(3006);
+  hFracWorkingPointDown->SetFillColor(hFracWorkingPointDown->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracWorkingPointDown->SetFillStyle(3006);
   if(!plotSymmetrized)hFracWorkingPointDown->Draw("h,same");
 
   hFracWorkingPoint = zeroErrors(hFracWorkingPoint);
   hFracWorkingPointInv = zeroErrors(hFracWorkingPointInv);
 
   hFracWorkingPoint = zeroErrors(hFracWorkingPoint);
-  hFracWorkingPoint->SetFillColor(hFracWorkingPoint->GetMarkerColor());
-  hFracWorkingPoint->SetFillStyle(3007);
+  hFracWorkingPoint->SetFillColor(hFracWorkingPoint->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracWorkingPoint->SetFillStyle(3007);
   if(plotSymmetrized)hFracWorkingPoint->Draw("h,same");
-  hFracWorkingPointInv->SetFillColor(hFracWorkingPoint->GetMarkerColor());
-  hFracWorkingPointInv->SetFillStyle(3007);
+  hFracWorkingPointInv->SetFillColor(hFracWorkingPoint->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracWorkingPointInv->SetFillStyle(3007);
   if(plotSymmetrized)hFracWorkingPointInv->Draw("h,same");
 
 
 
-  hFracDataDriven->SetFillColor(hFracDataDriven->GetMarkerColor());
-  hFracDataDriven->SetFillStyle(3004);
+  hFracDataDriven->SetFillColor(hFracDataDriven->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracDataDriven->SetFillStyle(3004);
   hFracDataDriven->Draw("h,same");
-  hFracDataDrivenInv->SetFillColor(hFracDataDriven->GetMarkerColor());
-  hFracDataDrivenInv->SetFillStyle(3004);
+  hFracDataDrivenInv->SetFillColor(hFracDataDriven->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracDataDrivenInv->SetFillStyle(3004);
   if(plotSymmetrized)hFracDataDrivenInv->Draw("h,same");
 
 
-  hFracCharm->SetFillColor(hFracCharm->GetMarkerColor());
-  hFracCharm->SetFillStyle(3005);
+  hFracCharm->SetFillColor(hFracCharm->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracCharm->SetFillStyle(3005);
   hFracCharm->Draw("h,same");
-  hFracCharmInv->SetFillColor(hFracCharm->GetMarkerColor());
-  hFracCharmInv->SetFillStyle(3005);
+  hFracCharmInv->SetFillColor(hFracCharm->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracCharmInv->SetFillStyle(3005);
   if(plotSymmetrized)hFracCharmInv->Draw("h,same");
   
   hFracGlue = zeroErrors(hFracGlue);
   hFracGlueInv = zeroErrors(hFracGlueInv);
 
-  hFracGlue->SetFillColor(hFracGlue->GetMarkerColor());
-  hFracGlue->SetFillStyle(3007);
-  hFracGlue->Draw("h,same");
-  hFracGlueInv->SetFillColor(hFracGlue->GetMarkerColor());
-  hFracGlueInv->SetFillStyle(3007);
+  hFracGlueUp->SetFillColor(hFracGlueUp->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracGlueUp->SetFillStyle(3007);
+  if(!plotSymmetrized)hFracGlueUp->Draw("h,same");
+  hFracGlueDown->SetFillColor(hFracGlue->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracGlueDown->SetFillStyle(3007);
+  if(!plotSymmetrized)hFracGlueDown->Draw("h,same");
+
+  hFracGlue->SetFillColor(hFracGlue->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracGlue->SetFillStyle(3007);
+  if(plotSymmetrized)hFracGlue->Draw("h,same");
+  hFracGlueInv->SetFillColor(hFracGlue->GetMarkerColor()-2);
+  if(plotSymmetrized)hFracGlueInv->SetFillStyle(3007);
   if(plotSymmetrized)hFracGlueInv->Draw("h,same");
+
 
   hFracTotal->Draw("h,same");
   hFracTotalInv->Draw("h,same");
 
-  
+  string legStyle = "l";
+  if(plotSymmetrized) legStyle="f";
 
-  TLegend *leg=new TLegend(0.5,0.7,0.85,0.95);
+  TLegend *leg=new TLegend(0.4,0.7,0.8,0.95);
   leg->SetBorderSize(0);
   leg->SetFillStyle(0);
   leg->AddEntry(hFracTotal,"Total","l");
-  leg->AddEntry(hFracLTJP,"Lifetime Tagger","f");
-  if(!plotSymmetrized)leg->AddEntry(hFracWorkingPointUp,"Working point up","f");
-  if(plotSymmetrized)leg->AddEntry(hFracWorkingPoint,"Working point","f");
-  if(!plotSymmetrized)leg->AddEntry(hFracWorkingPointDown,"Working point down","f");
-  leg->AddEntry(hFracDataDriven,"Data-driven template","f");
-  leg->AddEntry(hFracCharm,"Charm","f");
-  leg->AddEntry(hFracGlue,"Glue","f");
-  leg->Draw();
+  leg->AddEntry(hFracLTJP,"Reference Tagger",legStyle.c_str());
+  if(plotSymmetrized)leg->AddEntry(hFracWorkingPoint,"Working point",legStyle.c_str());
+  else{
+    leg->AddEntry(hFracWorkingPointDown,"Working point down",legStyle.c_str());
+    leg->AddEntry(hFracWorkingPointUp,"Working point up",legStyle.c_str());
+  }
 
-  
+  leg->AddEntry(hFracDataDriven,"Data-driven template",legStyle.c_str());
+  leg->AddEntry(hFracCharm,"Charm Normalization",legStyle.c_str());
+  if(plotSymmetrized)leg->AddEntry(hFracGlue,"Gluon Splitting",legStyle.c_str());
+  else{
+    leg->AddEntry(hFracGlueUp,"Glue up",legStyle.c_str());
+    leg->AddEntry(hFracGlueDown,"Glue down",legStyle.c_str());
+  }
+  leg->Draw();
 
 
 
@@ -365,6 +407,9 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
   hFracWorkingPoint->Write();
   hFracDataDriven->Write();
   hFracCharm->Write();
+  hFracGlue->Write();
+  hFracGlueUp->Write();
+  hFracGlueDown->Write();
 
   hFracLTJPInv->Write();
   hFracWorkingPointInv->Write();
