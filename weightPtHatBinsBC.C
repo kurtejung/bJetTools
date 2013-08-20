@@ -7,7 +7,7 @@
 #include "TH1.h"
 #include "TMath.h"
 
-void weightPtHatBinsBC(int LCB=1, int useGSP=1, int useQCD=1){
+void weightPtHatBinsBC(int LCB=2, int useGSP=1, int useQCD=1){
 
   // LCB =
   // 0:  Light jets
@@ -25,12 +25,12 @@ void weightPtHatBinsBC(int LCB=1, int useGSP=1, int useQCD=1){
   TFile *fin = NULL;
   if(LCB==0) fin = new TFile("/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_oldHydjet_restrictMixTripletA_ipHICalibCentWeight_qcd.root");
   else if(LCB==1){
-    if(useQCD) fin = new TFile("/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight_cJetPlusQCD.root");
-    else fin = new TFile("/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight_cJet.root");
+    if(useQCD) fin = new TFile("/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_restrictMixTripletA_ipHICalibCentWeight_cJetPlusQCD.root");
+    else fin = new TFile("/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_restrictMixTripletA_ipHICalibCentWeight_cJet.root");
   }
   else if(LCB==2){
-    if(useQCD) fin = new TFile("/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight_bJetPlusQCD.root");
-    else fin = new TFile("/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight_bJet.root");
+    if(useQCD) fin = new TFile("/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_restrictMixTripletA_ipHICalibCentWeight_bJetPlusQCD.root");
+    else fin = new TFile("/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_restrictMixTripletA_ipHICalibCentWeight_bJet.root");
   }
   else {
     cout<<" You suck at picking input files "<<endl;
@@ -78,44 +78,48 @@ void weightPtHatBinsBC(int LCB=1, int useGSP=1, int useQCD=1){
 
   //These are with vz weighting  
   double cPerEventQCD[8]={
-    0.0694539,
-    0.110722 ,
-    0.127494 ,
-    0.13941  ,
-    0.150601 ,
-    0.158814 ,
-    0.164293 ,
-    0.166625 };
-  double cPerEventC[8]={
-    0.6977  ,
-    0.914041,
-    0.97952	,
-    1.02432	,
-    1.05478	,
-    1.07694	,
-    1.10489	,
-    1.13004};
-  
-  double bPerEventB[8] = {
-    0.555707,
-    0.866712,
-    0.962954,
-    1.0185  ,
-    1.06156 ,
-    1.0978  ,
-    1.15189 ,
-    1.15061 };
-    
-  double bPerEventQCD[8]={
-    0.0260441,
-    0.0453556,
-    0.0548796,
-    0.0584761,
-    0.0626118,
-    0.0699029,
-    0.0718176,
-    0.0715977};
+    0.0524443,
+    0.0879323,
+    0.102821 ,
+    0.113471 ,
+    0.122306 ,
+    0.132606 ,
+    0.14323  ,
+    0.142827 
+  };
 
+  double cPerEventC[8]={
+    0.597692,
+    0.808605,
+    0.888114,
+    0.936757,
+    0.975179,
+    1.00339 ,
+    1.03668 ,
+    1.0665  
+  };
+
+  double bPerEventB[8] = {
+    0.4831 , 
+    0.787964,
+    0.894357,
+    0.959611,
+    1.00911,
+    1.0549 ,
+    1.11854,
+    1.11928
+  };
+
+  double bPerEventQCD[8]={
+    0.0223515,
+    0.0405942,
+    0.0519422,
+    0.0540474,
+    0.0615805,
+    0.0655359,
+    0.0739481,
+    0.0707902
+  };
 
   TF1 *fCent = new TF1("fCent","pol7",0,40);
   fCent->SetParameters(14781.9,-1641.19,127.245,-8.87318,0.41423,-0.011089,0.000154744,-8.76427e-07);
@@ -139,10 +143,10 @@ void weightPtHatBinsBC(int LCB=1, int useGSP=1, int useQCD=1){
   // preliminary
   //TFile *fMC = new TFile("/grid_mnt/vol__vol1__u/llr/cms/mnguyen/bTagging442p5/CMSSW_4_4_2_patch5/src/bTaggingMacros/histos/PbPbQCDMC.root");
   //TFile *fMC = new TFile("/grid_mnt/vol__vol1__u/llr/cms/mnguyen/bTagging442p5/CMSSW_4_4_2_patch5/src/bTaggingMacros/histos/PbPbQCDMC_regPFforJets.root");
-  TFile *fMCQCD=new TFile("/grid_mnt/vol__vol1__u/llr/cms/mnguyen/bTagging442p5/CMSSW_4_4_2_patch5/src/bTaggingMacros/histos/PbPbQCDMC_pt30by3_ipHICalibCentWeight.root");
+  TFile *fMCQCD=new TFile("/grid_mnt/vol__vol1__u/llr/cms/mnguyen/bTagging442p5/CMSSW_4_4_2_patch5/src/UserCode/kjung/bTaggerCode/histos//PbPbQCDMC_pt30by3_ipHICalibCentWeight_noTrig.root");
   TFile *fMCBorC = NULL;
-  if(LCB==1) fMCBorC=new TFile("/grid_mnt/vol__vol1__u/llr/cms/mnguyen/bTagging442p5/CMSSW_4_4_2_patch5/src/bTaggingMacros/histos/PbPbCMC_pt30by3_ipHICalibCentWeight.root");
-  if(LCB==2) fMCBorC=new TFile("/grid_mnt/vol__vol1__u/llr/cms/mnguyen/bTagging442p5/CMSSW_4_4_2_patch5/src/bTaggingMacros/histos/PbPbBMC_pt30by3_ipHICalibCentWeight.root");
+  if(LCB==1) fMCBorC=new TFile("/grid_mnt/vol__vol1__u/llr/cms/mnguyen/bTagging442p5/CMSSW_4_4_2_patch5/src/UserCode/kjung/bTaggerCode/histos/PbPbCMC_pt30by3_ipHICalibCentWeight_cOnly.root");
+  if(LCB==2) fMCBorC=new TFile("/grid_mnt/vol__vol1__u/llr/cms/mnguyen/bTagging442p5/CMSSW_4_4_2_patch5/src/UserCode/kjung/bTaggerCode/histos/PbPbBMC_pt30by3_ipHICalibCentWeight_bOnly.root");
   
   TH1F *hMCVz[2], *hMCCent[2];
 
@@ -162,7 +166,7 @@ void weightPtHatBinsBC(int LCB=1, int useGSP=1, int useQCD=1){
     hMCCent[1]->Scale(1./hMCCent[1]->Integral());
   }
 
-  //char filename[500] = "merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight";
+  //char filename[500] = "merged_bjetAnalyzers_hiReco_offPV_pt30by3_restrictMixTripletA_ipHICalibCentWeight";
 
   Double_t weight, xSecWeight, centWeight, vzWeight;
   Double_t xSecWeights[8];
@@ -193,8 +197,8 @@ void weightPtHatBinsBC(int LCB=1, int useGSP=1, int useQCD=1){
     
     cout<<" determining b or c normaliztion "<<endl;
     TFile *finBorCtemp = NULL;
-    if(LCB==1)finBorCtemp = new TFile("/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight_cJet.root");
-    if(LCB==2)finBorCtemp = new TFile("/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight_bJet.root");
+    if(LCB==1)finBorCtemp = new TFile("/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_restrictMixTripletA_ipHICalibCentWeight_cJet.root");
+    if(LCB==2)finBorCtemp = new TFile("/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_restrictMixTripletA_ipHICalibCentWeight_bJet.root");
     TTree *tr_inBorCtemp = (TTree*)finBorCtemp->Get("akPu3PFJetAnalyzer/t");    
     
     for (Int_t it=start; it<N; it++) {      
@@ -291,6 +295,7 @@ void weightPtHatBinsBC(int LCB=1, int useGSP=1, int useQCD=1){
   Float_t ipClosest2Jet[10000];
   Float_t         mue[300];
   Float_t         mupt[300];
+  Float_t         muptPF[300];
   Float_t         mueta[300];
   Float_t         muphi[300];
   Float_t         mudr[300];
@@ -339,8 +344,13 @@ void weightPtHatBinsBC(int LCB=1, int useGSP=1, int useQCD=1){
   Float_t muMax[300];
   Float_t muSum[300];
   Int_t muN[300];
-  
-  
+  // adding these by request of the JetKing
+  float trackMax[300];
+  float trackSum[300];
+  int trackN[300];    
+  int trackHardN[300];
+  float trackHardSum[300];
+
   int nHLTBit;
   bool hltBit[12];
   
@@ -403,6 +413,7 @@ void weightPtHatBinsBC(int LCB=1, int useGSP=1, int useQCD=1){
   tr_in->SetBranchAddress("ipClosest2Jet",ipClosest2Jet);
   tr_in->SetBranchAddress("mue",mue);
   tr_in->SetBranchAddress("mupt",mupt);
+  tr_in->SetBranchAddress("muptPF",muptPF);
   tr_in->SetBranchAddress("mueta",mueta);
   tr_in->SetBranchAddress("muphi",muphi);
   tr_in->SetBranchAddress("mudr",mudr);
@@ -461,7 +472,13 @@ void weightPtHatBinsBC(int LCB=1, int useGSP=1, int useQCD=1){
   tr_in->SetBranchAddress("muSum", muSum);
   tr_in->SetBranchAddress("muN", muN);
   
-  
+  tr_in->SetBranchAddress("trackMax", trackMax);
+  tr_in->SetBranchAddress("trackSum", trackSum);
+  tr_in->SetBranchAddress("trackN", trackN);
+  tr_in->SetBranchAddress("trackHardSum", trackHardSum);
+  tr_in->SetBranchAddress("trackHardN", trackHardN);
+
+
   // Set branch addresses.
   tr_in_skim->SetBranchAddress("pvSel",&pvSel);
   tr_in_skim->SetBranchAddress("hbheNoiseSel",&hbheNoiseSel);
@@ -472,15 +489,15 @@ void weightPtHatBinsBC(int LCB=1, int useGSP=1, int useQCD=1){
   char outfile[500];
   if(LCB==0) sprintf(outfile,"/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_oldHydjet_restrictMixTripletA_ipHICalibCentWeight_weighted_qcd.root");
   else if(LCB==1){
-    if(useQCD)sprintf(outfile,"/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight\
+    if(useQCD)sprintf(outfile,"/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_restrictMixTripletA_ipHICalibCentWeight\
 _weighted_cJetPlusQCD.root");
-    else sprintf(outfile,"/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight\
+    else sprintf(outfile,"/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_restrictMixTripletA_ipHICalibCentWeight\
 _weighted_cJet.root");
   }
   else if(LCB==2){
-    if(useQCD)sprintf(outfile,"/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight\
+    if(useQCD)sprintf(outfile,"/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_restrictMixTripletA_ipHICalibCentWeight\
 _weighted_bJetPlusQCD.root");
-    else sprintf(outfile,"/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_newHydjet_restrictMixTripletA_ipHICalibCentWeight\
+    else sprintf(outfile,"/data_CMS/cms/mnguyen/bTaggingOutput/hydjetEmbedded/merged_bjetAnalyzers_hiReco_offPV_pt30by3_restrictMixTripletA_ipHICalibCentWeight\
 _weighted_bJet.root");
   }
 
@@ -539,10 +556,11 @@ _weighted_bJet.root");
   tr_out->Branch("ipClosest2Jet",ipClosest2Jet,"ipClosest2Jet[nIP]/F");  
   tr_out->Branch("mue",mue,"mue[nref]/F");
   tr_out->Branch("mupt",mupt,"mupt[nref]/F");
+  tr_out->Branch("muptPF",muptPF,"muptPF[nref]/F");
   tr_out->Branch("mueta",mueta,"mueta[nref]/F");
   tr_out->Branch("muphi",muphi,"muphi[nref]/F");
   tr_out->Branch("mudr",mudr,"mudr[nref]/F");
-  tr_out->Branch("muptrel",muptrel,"muptre[nref]/F");
+  tr_out->Branch("muptrel",muptrel,"muptrel[nref]/F");
   tr_out->Branch("muchg",muchg,"muchg[nref]/I");
   tr_out->Branch("pthat",&pthat,"pthat/F");
   tr_out->Branch("beamId1",&beamId1,"beamId1/I");
@@ -601,6 +619,12 @@ _weighted_bJet.root");
   tr_out->Branch("muSum", muSum,"muSum[nref]/F");
   tr_out->Branch("muN", muN,"muN[nref]/I");
   
+  tr_out->Branch("trackMax", trackMax,"trackMax[nref]/F");
+  tr_out->Branch("trackSum", trackSum,"trackSum[nref]/F");
+  tr_out->Branch("trackN", trackN,"trackN[nref]/I");
+  tr_out->Branch("trackHardSum", trackHardSum,"trackHardSum[nref]/F");
+  tr_out->Branch("trackHardN", trackHardN,"trackHardN[nref]/I");
+
   // Set output branch addresses.
   tr_out_skim->Branch("pvSel",&pvSel,"pvSel/I");
   tr_out_skim->Branch("hbheNoiseSel",&hbheNoiseSel,"hbheNoiseSel/I");
@@ -650,25 +674,26 @@ _weighted_bJet.root");
     //    cout<<" centWeightData "<<centWeightData<<" centWeightMC "<<centWeightMC<<" centWeight "<<centWeight<<endl;
    if(centWeight<0) centWeight=0.;
 
-    int vzbin = (int) TMath::Ceil(vz+15.);
-    if(vzbin>0&&vzbin<=30)vzWeight = hDataVz->GetBinContent(vzbin)/hMCVz[isFiltered]->GetBinContent(vzbin);
-    else vzWeight=0.;
-
-    xSecWeight = xSecWeights[ibin];
-
-    //fudge factor for vertex/x-sec non-factorization
-    if(LCB>0&&isFiltered){
-      if(LCB==1) xSecWeight/=0.93022;
-      if(LCB==2) xSecWeight/=0.989157; 
-    }
-
-    /*  // for testing
-   vzWeight = centWeightData;
-   xSecWeight = centWeightMC;
-    */
-    weight=xSecWeight*centWeight*vzWeight;
-    
-    
+   int vzbin = (int) TMath::Ceil(vz+15.+0.4);  // 0.4 is the pixel detector shift
+   if(vzbin>0&&vzbin<=30)vzWeight = hDataVz->GetBinContent(vzbin)/hMCVz[isFiltered]->GetBinContent(vzbin);
+   else vzWeight=0.;
+   
+   xSecWeight = xSecWeights[ibin];
+   
+   //fudge factor for vertex/x-sec non-factorization
+   /*
+     if(LCB>0&&isFiltered){
+     if(LCB==1) xSecWeight/=0.93022;
+     if(LCB==2) xSecWeight/=0.989157; 
+     }
+   */
+   /*  // for testing
+       vzWeight = centWeightData;
+       xSecWeight = centWeightMC;
+   */
+   weight=xSecWeight*centWeight*vzWeight;
+   
+   
     
     tr_out->Fill();
     tr_out_skim->Fill();
