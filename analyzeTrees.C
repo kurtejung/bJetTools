@@ -148,18 +148,6 @@ int *countMCevents(std::string infile, std::string HFfile, bool usePUsub, int is
     
     double tempEntr[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
     
-    /* MCentries[0] += (double)HFch->GetEntries("pthat<15")*0;
-    MCentries[1] += (double)HFch->GetEntries("pthat>=15 && pthat<30")*HFweight[0];
-    MCentries[2] += (double)HFch->GetEntries("pthat>=30 && pthat<50")*HFweight[1];
-    MCentries[3] += (double)HFch->GetEntries("pthat>=50 && pthat<80")*HFweight[2];
-    MCentries[4] += (double)HFch->GetEntries("pthat>=80 && pthat<120")*HFweight[3];
-    MCentries[5] += (double)HFch->GetEntries("pthat>=120 && pthat<170")*HFweight[4];
-    MCentries[6] += (double)HFch->GetEntries("pthat>=170 && pthat<220")*HFweight[5];
-    MCentries[7] += (double)HFch->GetEntries("pthat>=220 && pthat<280")*HFweight[6];
-    MCentries[8] += (double)HFch->GetEntries("pthat>=280 && pthat<370")*HFweight[7];
-    MCentries[9] += (double)HFch->GetEntries("pthat>=370 && pthat<460")*HFweight[8];
-    MCentries[10] += (double)HFch->GetEntries("pthat>=460 && pthat<540")*HFweight[9];
-    MCentries[11] += (double)HFch->GetEntries("pthat>=540 && pthat<1200")*HFweight[10];*/
     tempEntr[0] = HFch->GetEntries("pthat<15");
     tempEntr[1] = HFch->GetEntries("pthat>=15 && pthat<30");
     tempEntr[2] = HFch->GetEntries("pthat>=30 && pthat<50");
@@ -237,7 +225,7 @@ double* getPscls(std::string infile, int nFiles, bool usePUsub){
 // ~~~ MAIN PROGRAM ~~~
 //**********************************************************
 
-void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=1, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1,int useGSP=2, int jetTrig=0, bool ExpandedTree=false, bool usePUsub=0)
+void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=1, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1, int useGSP=2, int jetTrig=0, bool ExpandedTree=false, bool usePUsub=0)
 {
   // isMC=0 --> Real data, ==1 --> QCD, ==2 --> bJet, ==3 --> cJet
   Float_t minJetPt=15.;
@@ -252,6 +240,22 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=1, int 
   // cbin =2 --> 50-100%
   if(!ppPbPb) cbin=-1;
   int useWeight=1;
+
+  //Get vz weight histograms for MC if needed
+  TH1D *hMCvz[2], hDatavz;
+  TFile *fMCvz, *fDatavz, *fBvz;
+  if(isMC){
+    fMCvz = new TFile("MCvzDistr.root");
+    hMCvz[0] = (TH1D*)(fMCvz->Get("hvz"))->Clone("hMCvz_0");
+    fDatavz = new TFile("DatavzDistro.root");
+    hDatavz = (TH1D*)(fMCvz->Get("hvzData"))->Clone("hDatavz");
+    fBvz = new TFile("BvzDistr.root");
+    hMCvz[1] = (TH1D*)(fBvz->Get("hvzB"))->Clone("hMCvz_1");
+    
+    hMCvz[0]->Scale(1./hMCvz[0]->Integral());
+    hMCvz[1]->Scale(1./hMCvz[1]->Integral());
+    hDatavz->Scale(1./hDatavz->Integral());
+  }
 
   cout << "Analyzing Trees! Assuming " << QCDpthatBins << " QCD pthat bins, and " << HFpthatBins << " B/C pthat bins." << endl;
 
@@ -933,6 +937,8 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=1, int 
       t->SetBranchAddress("refparton_pt",refparton_pt);
       t->SetBranchAddress("refparton_flavor",refparton_flavor);
       t->SetBranchAddress("refparton_flavorForB",refparton_flavorForB);
+      t->SetBranchAddress("refparton_isGSP",refparton_isGSP);
+      
 
       TBranch* tweight;
       if(isMC){
@@ -1154,22 +1160,18 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=1, int 
 	t_pthat=pthat;
 	int j=0;
 	while(pthat>pthatbin[j] && j<QCDpthatBins) j++;
-	//	if(isMC>1 && ifile>=QCDpthatBins){
-	  // cout << "pthat: "<< pthat << endl;
-	  //cout << "bin: "<< j << endl;
-	  /*int k = (j<HFpthatBins+1 ? j : HFpthatBins+1); //WATCH THIS! IF YOU ADD AN HF pthat-15 sample, this must be FIXED!!
-	    w = (wght[k-1]/MCentr[j]);*/
-	  //cout << "weight: "<< wght[k-1] << endl;
-	  //cout << "MCentr: "<< MCentr[j] << endl;
-	  // w *= HFweight[k-1]; //do HF reweighting for b/c samples (changed in MCcounter - added QCD and B/C samples together)
-	  //if(pthat>220) continue;
-	//	}
-	//	else{
 	  w = (wght[j-1]/MCentr[j]); //wght[0] = pthat>15, MCentr[0] = pthat<15.  I know it's dumb - bear with me.
-	  //	}
       }
-      t_weight=w;	  
-      
+      if(isMC){
+	bool isFiltered=0;
+	if(isMC>1) isFiltered=1;
+	double vzWeight=0;
+	int vzbin = (int) TMath::Ceil(vz+15.+0.4);  // 0.4 is the pixel detector shift
+	if(vzbin>0&&vzbin<=30)vzWeight = hDatavz->GetBinContent(vzbin)/hMCvz[isFiltered]->GetBinContent(vzbin);
+	t_weight=w*vzWeight;	  
+      }
+      else t_weight=w;
+
       int useEvent=0;
       
       int trackPosition =0;
