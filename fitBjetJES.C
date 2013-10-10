@@ -20,11 +20,11 @@ void fitBjetJES(int ppPbPb=1, int cbinlo=12, int cbinhi=40){
   TFile *fL;
   
   if(!ppPbPb)fL=new TFile("histos/ppMC_hiReco_jetTrig_highPurity_JEC.root");
-  else     fL=new TFile("histos/PbPbQCDMC_JEC.root");
+  else     fL=new TFile("histos/PbPbQCDMC_pt30by3_ipHICalibCentWeight.root");
 
   // these are dummy files for pp
-  TFile *fB=new TFile("histos/PbPbBMC_JEC.root");
-  TFile *fC=new TFile("histos/PbPbCMC_JEC.root");
+  TFile *fB=new TFile("histos/PbPbBMC_pt30by3_ipHICalibCentWeight.root");
+  TFile *fC=new TFile("histos/PbPbCMC_pt30by3_ipHICalibCentWeight.root");
 
 
   TNtuple *tL = (TNtuple*) fL->Get("nt");

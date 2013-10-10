@@ -25,10 +25,11 @@ TH1F *zeroErrors(TH1F *h){
   for(int i=0;i<h->GetNbinsX();i++) h->SetBinError(i+1,0);
 }
 
-void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmetrized=1)
+void plotSystematicComponents(bool doTransform=1, bool ppPbPb=0, bool plotSymmetrized=1)
 {
-
   gStyle->SetErrorX(0);
+  gStyle->SetHistLineWidth(2);
+  gROOT->ForceStyle(1);
 
   //  TFile *fMatrix = NULL;
   TH2F *xNorm=NULL;
@@ -61,14 +62,19 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
   }
   else{
     // Default parameters and LTJP systematic
-    f0 = new TFile("output/NewFormatV5_bFractionMCTemplate_pppp1_SSVHEat2.0FixCL0_bin_0_40_eta_0_2.root");
+    f0 = new TFile("output/NewFormatV5_bFractionMCTemplate_pppp1_jetcut30_dinkoXchk_SSVHEat2.0FixCL0_bin_0_40_eta_0_2.root");
     // Working point variation
-    f1a = new TFile("output/NewFormatV5_bFractionMCTemplate_pppp1_SSVHEat2.5FixCL0_bin_0_40_eta_0_2.root");
-    f1b = new TFile("output/NewFormatV5_bFractionMCTemplate_pppp1_SSVHEat1.8FixCL0_bin_0_40_eta_0_2.root");
+    f1a = new TFile("output/NewFormatV5_bFractionMCTemplate_pppp1_jetcut30_dinkoXchk_SSVHEat2.5FixCL0_bin_0_40_eta_0_2.root");
+    f1b = new TFile("output/NewFormatV5_bFractionMCTemplate_pppp1_jetcut30_dinkoXchk_SSVHEat1.8FixCL0_bin_0_40_eta_0_2.root");
     // Data-driven template
-    f2 = new TFile("output/NewFormatV5_bFractionDataTemplate_pppp1_SSVHEat2.0FixCL1_bin_0_40_eta_0_2.root");
+    f2 = new TFile("output/NewFormatV5_bFractionDataTemplate_pppp1_jetcut30_dinkoXchk_SSVHEat2.0FixCL1_bin_0_40_eta_0_2.root");
     // fix charm
-    f3 = new TFile("output/NewFormatV5_bFractionMCTemplate_pppp1_SSVHEat2.0FixCL1_bin_0_40_eta_0_2.root");
+    f3 = new TFile("output/NewFormatV5_bFractionMCTemplate_pppp1_jetcut30_dinkoXchk_SSVHEat2.0FixCL1_bin_0_40_eta_0_2.root");
+    //gsp up and down
+    f4a = new TFile("output/NewFormatV5_bFractionMCTemplate_pppp1_gspDown_jetcut30_dinkoXchk_SSVHEat2.0FixCL0_bin_0_40_eta_0_2.root");
+    f4b = new TFile("output/NewFormatV5_bFractionMCTemplate_pppp1_gspDown_jetcut30_dinkoXchk_SSVHEat2.0FixCL0_bin_0_40_eta_0_2.root");
+    //Eric's Gplus PU filter
+    f5 = new TFile("output/NewFormatV5_bFractionMCTemplate_pppp1_jetcut30_dinkoXchk_gPlusFilter_SSVHEat2.0FixCL0_bin_0_40_eta_0_2.root");
   }
   // Divide by efficiency
 
@@ -124,20 +130,30 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
  if(doTransform) hCharm = transformReco2Gen(hCharm, xNorm);
  
  // gluon systematics
-  TH1F *hRawSpec4a =  (TH1F*)f4a->Get("hRawBData");
-  TH1F *hEff4a =  (TH1F*)f4a->Get("hBEfficiencyMC");
-  
-  TH1F *hGlueUp = hRawSpec4a->Clone("hGlueUp");
-  hGlueUp->Divide(hEff4a);
+ TH1F *hRawSpec4a =  (TH1F*)f4a->Get("hRawBData");
+ TH1F *hEff4a =  (TH1F*)f4a->Get("hBEfficiencyMC");
+ 
+ TH1F *hGlueUp = hRawSpec4a->Clone("hGlueUp");
+ hGlueUp->Divide(hEff4a);
+ 
+ TH1F *hRawSpec4b =  (TH1F*)f4b->Get("hRawBData");
+ TH1F *hEff4b =  (TH1F*)f4b->Get("hBEfficiencyMC");
+ 
+ TH1F *hGlueDown = hRawSpec4b->Clone("hGlueDown");
+ hGlueDown->Divide(hEff4b);
+ 
+ if(doTransform) hGlueUp = transformReco2Gen(hGlueUp, xNorm);
+ if(doTransform) hGlueDown = transformReco2Gen(hGlueDown, xNorm);
 
-  TH1F *hRawSpec4b =  (TH1F*)f4b->Get("hRawBData");
-  TH1F *hEff4b =  (TH1F*)f4b->Get("hBEfficiencyMC");
-  
-  TH1F *hGlueDown = hRawSpec4b->Clone("hGlueDown");
-  hGlueDown->Divide(hEff4b);
-
-  if(doTransform) hGlueUp = transformReco2Gen(hGlueUp, xNorm);
-  if(doTransform) hGlueDown = transformReco2Gen(hGlueDown, xNorm);
+ // pu systematics
+ TH1F *hRawSpec5 =  (TH1F*)f5->Get("hRawBData");
+ TH1F *hEff5 =  (TH1F*)f5->Get("hBEfficiencyMC");
+ 
+ TH1F *hPU = hRawSpec5->Clone("hPU");
+ hPU->Scale(1./7.54082720175149213e-01); //adjustment in luminosity for PU rejection
+ hPU->Divide(hEff5);
+ 
+ if(doTransform) hPU = transformReco2Gen(hPU, xNorm);
 
  //plotting style stuff
 
@@ -148,6 +164,7 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
  hCharm->SetMarkerColor(kCyan+2);
  hGlueUp->SetMarkerColor(kYellow+2);
  hGlueDown->SetMarkerColor(kOrange+2);
+ hPU->SetMarkerColor(kBlue-1);
  
  hLTJP->SetLineColor(kRed+2);
  hWorkingPointUp->SetLineColor(kSpring+2);
@@ -156,7 +173,8 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
  hCharm->SetLineColor(kCyan+2);
  hGlueUp->SetLineColor(kYellow+2);
  hGlueDown->SetLineColor(kOrange+2);
- 
+ hPU->SetLineColor(kBlue-1);
+
  if(!plotSymmetrized){
    hLTJP->SetMarkerStyle(24);
    hWorkingPointUp->SetMarkerStyle(26);
@@ -165,6 +183,7 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
    hCharm->SetMarkerStyle(4);
    hGlueUp->SetMarkerStyle(2);
    hGlueDown->SetMarkerStyle(5);
+   hPU->SetMarkerStyle(28);
 
   hLTJP->SetLineStyle(7);
   hWorkingPointUp->SetLineStyle(6);
@@ -173,6 +192,7 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
   hCharm->SetLineStyle(4);
   hGlueUp->SetLineStyle(2);
   hGlueDown->SetLineStyle(5);
+  hPU->SetLineStyle(10);
    
   hLTJP->SetLineWidth(3);
   hWorkingPointUp->SetLineWidth(3);
@@ -181,7 +201,8 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
   hCharm->SetLineWidth(3);
   hGlueUp->SetLineWidth(3);
   hGlueDown->SetLineWidth(3);
-
+  hPU->SetLineWidth(3);
+  
  }
 
 
@@ -195,6 +216,7 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
  hCharm->Draw("same");
  hGlueUp->Draw("same");
  hGlueDown->Draw("same");
+ hPU->Draw("same");
  
 
   // Now take fractional systematics
@@ -209,6 +231,7 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
   TH1F *hFracCharm = hCharm->Clone("hFracCharm");
   TH1F *hFracGlueUp = hGlueUp->Clone("hFracGlueUp");
   TH1F *hFracGlueDown = hGlueDown->Clone("hFracGlueDown");
+  TH1F *hFracPU = hPU->Clone("hFracPU");
   
   hFracTotal->Reset();
   hFracLTJP->Reset();
@@ -218,6 +241,7 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
   hFracCharm->Reset();
   hFracGlueUp->Reset();
   hFracGlueDown->Reset();
+  hFracPU->Reset();
 
   TH1F *hFracWorkingPoint = hWorkingPointUp->Clone("hFracWorkingPoint");
   TH1F *hFracGlue = hGlueUp->Clone("hFracGlue");
@@ -228,6 +252,7 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
   TH1F *hFracDataDrivenInv = (TH1F*)hFracDataDriven->Clone("hFracDataDrivenInv");
   TH1F *hFracCharmInv = (TH1F*)hFracCharm->Clone("hFracCharmInv");
   TH1F *hFracGlueInv = (TH1F*)hFracGlue->Clone("hFracGlueInv");
+  TH1F *hFracPUInv = (TH1F*)hFracPU->Clone("hFracPUInv");
 
   for(int i =0;i < hDefault->GetNbinsX(); i++){
 
@@ -240,6 +265,7 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
     float fracCharm = hCharm->GetBinContent(i+1)/valDefault-1.;
     float fracGlueUp = hGlueUp->GetBinContent(i+1)/valDefault-1.;
     float fracGlueDown = hGlueDown->GetBinContent(i+1)/valDefault-1.;
+    float fracPU = hPU->GetBinContent(i+1)/valDefault-1.;
     
     hFracLTJP->SetBinContent(i+1,fracLTJP);
     hFracWorkingPointUp->SetBinContent(i+1,fracWorkingPointUp);
@@ -248,6 +274,7 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
     hFracCharm->SetBinContent(i+1,fracCharm);
     hFracGlueUp->SetBinContent(i+1,fracGlueUp);
     hFracGlueDown->SetBinContent(i+1,fracGlueDown);
+    hFracPU->SetBinContent(i+1, fracPU);
 
     float fracWorkingPoint = TMath::Max(fabs(fracWorkingPointUp),fabs(fracWorkingPointDown));
     float fracGlue = TMath::Max(fabs(fracGlueUp),fabs(fracGlueDown));
@@ -260,12 +287,14 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
     hFracDataDrivenInv->SetBinContent(i+1,-1.*fracDataDriven);
     hFracCharmInv->SetBinContent(i+1,-1.*fracCharm);
     hFracGlueInv->SetBinContent(i+1,-1.*fracGlue);
+    hFracPUInv->SetBinContent(i+1, -1.*fracPU);
         
 
     float fracTotal = sqrt(fracLTJP*fracLTJP+
 			   fracWorkingPoint*fracWorkingPoint+
 			   fracDataDriven*fracDataDriven+
 			   fracCharm*fracCharm+
+			   fracPU*fracPU+
 			   fracGlue*fracGlue
 			   );
     
@@ -301,85 +330,99 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
 
   }
 
-  hFracLTJP->GetYaxis()->SetTitle("Relative Error");
-  hFracLTJP->GetXaxis()->SetNdivisions(505);
+  hFracTotal->GetYaxis()->SetTitle("Relative Error");
+  hFracTotal->SetTitle("");
+  hFracTotal->GetYaxis()->SetTitleOffset(1.3);
+  hFracTotal->GetXaxis()->SetNdivisions(505);
+  
+  hFracTotal->SetMaximum(0.6);
+  hFracTotal->SetMinimum(-0.4);
 
-  hFracLTJP->SetMaximum(0.6);
-  hFracLTJP->SetMinimum(-0.4);
-  hFracLTJP->SetFillColor(hFracLTJP->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracLTJP->SetFillStyle(3003);
-  hFracLTJP->Draw("");
+  hFracTotal->SetFillStyle(1001);
+  hFracTotalInv->SetFillStyle(1001);
+  hFracTotal->SetFillColor(kGray);
+  hFracTotalInv->SetFillColor(kGray);
+  
+  hFracTotal->Draw("h");
+  hFracTotalInv->Draw("h,same");
+
+  // hFracLTJP->SetFillColor(hFracLTJP->GetMarkerColor()-2);
+  // if(plotSymmetrized)hFracLTJP->SetFillStyle(3003);
+  hFracLTJP->Draw("same");
 
   hFracLTJPInv->SetMaximum(0.5);
   hFracLTJPInv->SetMinimum(-0.5);
-  hFracLTJPInv->SetFillColor(hFracLTJP->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracLTJPInv->SetFillStyle(3003);
-  if(plotSymmetrized)hFracLTJPInv->Draw("h,same");
+  //hFracLTJPInv->SetFillColor(hFracLTJP->GetMarkerColor()-2);
+  //if(plotSymmetrized)hFracLTJPInv->SetFillStyle(3003);
+  if(plotSymmetrized)hFracLTJPInv->Draw("same");
 
 
-  hFracWorkingPointUp->SetFillColor(hFracWorkingPointUp->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracWorkingPointUp->SetFillStyle(3006);
-  if(!plotSymmetrized)hFracWorkingPointUp->Draw("h,same");
-  hFracWorkingPointDown->SetFillColor(hFracWorkingPointDown->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracWorkingPointDown->SetFillStyle(3006);
-  if(!plotSymmetrized)hFracWorkingPointDown->Draw("h,same");
+  // hFracWorkingPointUp->SetFillColor(hFracWorkingPointUp->GetMarkerColor()-2);
+  // if(plotSymmetrized)hFracWorkingPointUp->SetFillStyle(3006);
+  if(!plotSymmetrized)hFracWorkingPointUp->Draw("same");
+  //hFracWorkingPointDown->SetFillColor(hFracWorkingPointDown->GetMarkerColor()-2);
+  //if(plotSymmetrized)hFracWorkingPointDown->SetFillStyle(3006);
+  if(!plotSymmetrized)hFracWorkingPointDown->Draw("same");
 
   hFracWorkingPoint = zeroErrors(hFracWorkingPoint);
   hFracWorkingPointInv = zeroErrors(hFracWorkingPointInv);
 
   hFracWorkingPoint = zeroErrors(hFracWorkingPoint);
-  hFracWorkingPoint->SetFillColor(hFracWorkingPoint->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracWorkingPoint->SetFillStyle(3007);
-  if(plotSymmetrized)hFracWorkingPoint->Draw("h,same");
-  hFracWorkingPointInv->SetFillColor(hFracWorkingPoint->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracWorkingPointInv->SetFillStyle(3007);
-  if(plotSymmetrized)hFracWorkingPointInv->Draw("h,same");
+  // hFracWorkingPoint->SetFillColor(hFracWorkingPoint->GetMarkerColor()-2);
+  // if(plotSymmetrized)hFracWorkingPoint->SetFillStyle(3007);
+  if(plotSymmetrized)hFracWorkingPoint->Draw("same");
+  // hFracWorkingPointInv->SetFillColor(hFracWorkingPoint->GetMarkerColor()-2);
+  // if(plotSymmetrized)hFracWorkingPointInv->SetFillStyle(3007);
+  if(plotSymmetrized)hFracWorkingPointInv->Draw("same");
 
 
 
-  hFracDataDriven->SetFillColor(hFracDataDriven->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracDataDriven->SetFillStyle(3004);
-  hFracDataDriven->Draw("h,same");
-  hFracDataDrivenInv->SetFillColor(hFracDataDriven->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracDataDrivenInv->SetFillStyle(3004);
-  if(plotSymmetrized)hFracDataDrivenInv->Draw("h,same");
+  //hFracDataDriven->SetFillColor(hFracDataDriven->GetMarkerColor()-2);
+  // if(plotSymmetrized)hFracDataDriven->SetFillStyle(3004);
+  hFracDataDriven->Draw("same");
+  // hFracDataDrivenInv->SetFillColor(hFracDataDriven->GetMarkerColor()-2);
+  // if(plotSymmetrized)hFracDataDrivenInv->SetFillStyle(3004);
+  if(plotSymmetrized)hFracDataDrivenInv->Draw("same");
 
 
-  hFracCharm->SetFillColor(hFracCharm->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracCharm->SetFillStyle(3005);
-  hFracCharm->Draw("h,same");
-  hFracCharmInv->SetFillColor(hFracCharm->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracCharmInv->SetFillStyle(3005);
-  if(plotSymmetrized)hFracCharmInv->Draw("h,same");
+  // hFracCharm->SetFillColor(hFracCharm->GetMarkerColor()-2);
+  // if(plotSymmetrized)hFracCharm->SetFillStyle(3005);
+  hFracCharm->Draw("same");
+  // hFracCharmInv->SetFillColor(hFracCharm->GetMarkerColor()-2);
+  // if(plotSymmetrized)hFracCharmInv->SetFillStyle(3005);
+  if(plotSymmetrized)hFracCharmInv->Draw("same");
   
   hFracGlue = zeroErrors(hFracGlue);
   hFracGlueInv = zeroErrors(hFracGlueInv);
 
-  hFracGlueUp->SetFillColor(hFracGlueUp->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracGlueUp->SetFillStyle(3007);
-  if(!plotSymmetrized)hFracGlueUp->Draw("h,same");
-  hFracGlueDown->SetFillColor(hFracGlue->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracGlueDown->SetFillStyle(3007);
-  if(!plotSymmetrized)hFracGlueDown->Draw("h,same");
+  // hFracGlueUp->SetFillColor(hFracGlueUp->GetMarkerColor()-2);
+  //if(plotSymmetrized)hFracGlueUp->SetFillStyle(3007);
+  if(!plotSymmetrized)hFracGlueUp->Draw("same");
+  // hFracGlueDown->SetFillColor(hFracGlue->GetMarkerColor()-2);
+  // if(plotSymmetrized)hFracGlueDown->SetFillStyle(3007);
+  if(!plotSymmetrized)hFracGlueDown->Draw("same");
 
-  hFracGlue->SetFillColor(hFracGlue->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracGlue->SetFillStyle(3007);
-  if(plotSymmetrized)hFracGlue->Draw("h,same");
-  hFracGlueInv->SetFillColor(hFracGlue->GetMarkerColor()-2);
-  if(plotSymmetrized)hFracGlueInv->SetFillStyle(3007);
-  if(plotSymmetrized)hFracGlueInv->Draw("h,same");
+  //hFracGlue->SetFillColor(hFracGlue->GetMarkerColor()-2);
+  // if(plotSymmetrized)hFracGlue->SetFillStyle(3007);
+  if(plotSymmetrized)hFracGlue->Draw("same");
+  //hFracGlueInv->SetFillColor(hFracGlue->GetMarkerColor()-2);
+  // if(plotSymmetrized)hFracGlueInv->SetFillStyle(3007);
+  if(plotSymmetrized)hFracGlueInv->Draw("same");
 
-
-  hFracTotal->Draw("h,same");
-  hFracTotalInv->Draw("h,same");
+  // hFracPU->SetFillColor(hFracPU->GetMarkerColor()-2);
+  // if(plotSymmetrized)hFracPU->SetFillStyle(3008);
+  hFracPU->Draw("same");
+  // hFracPUInv->SetFillColor(hFracPU->GetMarkerColor()-2);
+  // if(plotSymmetrized)hFracPUInv->SetFillStyle(3008);
+  if(plotSymmetrized)hFracPUInv->Draw("same");
 
   string legStyle = "l";
-  if(plotSymmetrized) legStyle="f";
+  //if(plotSymmetrized) legStyle="f";
 
-  TLegend *leg=new TLegend(0.4,0.7,0.8,0.95);
+  TLegend *leg=new TLegend(0.225,0.6555,0.624,0.905);
   leg->SetBorderSize(0);
   leg->SetFillStyle(0);
-  leg->AddEntry(hFracTotal,"Total","l");
+  leg->AddEntry(hFracTotal,"Total","lf");
   leg->AddEntry(hFracLTJP,"Reference Tagger",legStyle.c_str());
   if(plotSymmetrized)leg->AddEntry(hFracWorkingPoint,"Working point",legStyle.c_str());
   else{
@@ -394,9 +437,15 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
     leg->AddEntry(hFracGlueUp,"Glue up",legStyle.c_str());
     leg->AddEntry(hFracGlueDown,"Glue down",legStyle.c_str());
   }
+  leg->AddEntry(hFracPU,"GPlus PU Filter",legStyle.c_str());
   leg->Draw();
 
-
+  TLatex *lt1 = new TLatex(183.5,0.455,"#sqrt{s} = 2.76 TeV");
+  lt1->SetTextSize(0.042);
+  lt1->Draw();
+  TLatex *lt2 = new TLatex(217,0.52,"CMS");
+  lt2->SetTextSize(0.05);
+  lt2->Draw();
 
   TFile *fout=NULL;
   if(ppPbPb)fout = new TFile("systematics_components_PbPb.root","recreate");
@@ -410,11 +459,13 @@ void plotSystematicComponents(bool doTransform=1, bool ppPbPb=1, bool plotSymmet
   hFracGlue->Write();
   hFracGlueUp->Write();
   hFracGlueDown->Write();
+  hFracPU->Write();
 
   hFracLTJPInv->Write();
   hFracWorkingPointInv->Write();
   hFracDataDrivenInv->Write();
   hFracCharmInv->Write();
+  hFracPUInv->Write();
 
   fout->Close();
   

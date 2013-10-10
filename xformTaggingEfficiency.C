@@ -1,8 +1,8 @@
 void xformTaggingEfficiency(){
 
 
-  TFile *fMatrix = new TFile("outputTowardsFinal/reco2GenMatrix.root");
-  TFile *fin = new TFile("outputTowardsFinal/NewFormatV3_bFractionMCTemplate_ppPbPb1_SSVHEat2.0FixCL0_bin_0_40_eta_0_2.root");
+  TFile *fMatrix = new TFile("output/reco2GenMatrix.root");
+  TFile *fin = new TFile("output/NewFormatV5_bFractionMCTemplate_pppp1_SSVHEat2.0FixCL0_bin_0_40_eta_0_2.root");
 
   // reco 2 gen matrix
   TH2F *hXform = (TH2F*)fMatrix->Get("hRecoVsGenNorm");

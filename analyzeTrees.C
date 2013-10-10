@@ -10,7 +10,6 @@
 #include "TNtuple.h"
 #include "TROOT.h"
 #include "TChain.h"
-#include "TMath.h"
 
 //These includes cause some complications in CMSSW_5_3_8_HI_patchX.  Commented out for pp.
 //If you want to recalculate the JECs on the fly again, just uncomment everything in the updateJEC blocks
@@ -226,7 +225,7 @@ double* getPscls(std::string infile, int nFiles, bool usePUsub){
 // ~~~ MAIN PROGRAM ~~~
 //**********************************************************
 
-void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1, int useGSP=0, int jetTrig=0, bool ExpandedTree=false, bool usePUsub=0)
+void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=1, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1,int useGSP=2, int jetTrig=0, bool ExpandedTree=false, bool usePUsub=0)
 {
   // isMC=0 --> Real data, ==1 --> QCD, ==2 --> bJet, ==3 --> cJet
   Float_t minJetPt=15.;
@@ -243,7 +242,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
   int useWeight=1;
 
   //Get vz weight histograms for MC if needed
-  TH1D *hMCvz[2], *hDatavz;
+  TH1D *hMCvz[2], hDatavz;
   TFile *fMCvz, *fDatavz, *fBvz;
   if(isMC){
     fMCvz = new TFile("MCvzDistr.root");
@@ -825,7 +824,6 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
   std::ifstream HFstr(HFfile.c_str(), std::ifstream::in);
   std::string filename;
   int nFiles=0;
-  int vzReject=0, vzPass=0;
   if(ppPbPb) nFiles=1;
   else if(isMC){
     nFiles=QCDpthatBins;
@@ -1069,11 +1067,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
 	if(jetTrig==2&&!hltBit[9]) continue;
       }
 
-      if(fabs(vz)>15.){
-	vzReject++; 
-	continue;
-      }
-      else vzPass++;
+      if(fabs(vz)>15.) continue;
       
       // pileup rejection
       if(ppPbPb && hf>150000.){
@@ -1171,6 +1165,7 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
       if(isMC){
 	bool isFiltered=0;
 	if(isMC>1) isFiltered=1;
+	double vzWeight=0;
 	int vzbin = (int) TMath::Ceil(vz+15.+0.4);  // 0.4 is the pixel detector shift
 	if(vzbin>0&&vzbin<=30)vzWeight = hDatavz->GetBinContent(vzbin)/hMCvz[isFiltered]->GetBinContent(vzbin);
 	t_weight=w*vzWeight;	  
@@ -1655,9 +1650,6 @@ void analyzeTrees(int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int 
       
     }
   }
-  cout << "vz Pass: " << vzPass << endl;
-  cout << "vz Fail: " << vzReject << endl;
-  cout << "vzEff: "<< (double)vzPass/((double)vzPass+(double)vzReject) << endl;
   fout->cd();
 
   hbin->Write(); hbinw->Write(); hvz->Write(); hvzw->Write();
