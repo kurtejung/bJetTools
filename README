@@ -1,0 +1,17 @@
+~~~ PP WORKFLOW ~~~
+
+From the HiForest:
+(1) Create the BJet Trees
+run analyzeTrees.C -> be sure to set fout to include or not include the gsp designations, depending on whether you want to run or not run the gsp code.  The weights are taken care of automatically - no reweighting code required.
+
+(2) Run the fits
+pp fits run via bfractionVsJetPtPP.C.  This should run out of the box.  Be sure to create two folders: PDFS and MACROS if you want to save the fits output.  Svtxm fits will be saved here.
+
+(3) Plot systematics
+pp systematics plots are run via plotSystematicComponents.C.  You'll need all the output files that I've put in the "data" directory.  You can also choose to run the gen->reco jet pt matrix via the createReco2GenMatrix.C code, else you can use the exisiting code.
+
+(4) To remake the compareDataMC plots, just run the compareDataMC.C code.  The data output you might need is here: /afs/cern.ch/user/k/kjung/public and the MC output is here: /mnt/hadoop/cms/store/user/kjung/HIN-12-003-MC_backup
+
+(5) To make the efficiency plots, you can run the plotEfficiencyNew.C code.  The input files you need should be in "data".  All JP and SV taggers for pPb, PbPb, and pp are available - you can just comment in or out what you want to plot.
+
+
