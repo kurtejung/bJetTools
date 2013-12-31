@@ -305,21 +305,13 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
   int useWeight=1;
 
   //Get vz weight histograms for MC if needed
-<<<<<<< HEAD
   TH1D *hMCvz[2], *hDatavz;
-=======
-  TH1D *hMCvz[2], hDatavz;
->>>>>>> 65aff381d47acba9f0fc82ba042827fd0ec5b9b1
   TFile *fMCvz, *fDatavz, *fBvz;
   if(isMC){
     fMCvz = new TFile("MCvzDistr.root");
     hMCvz[0] = (TH1D*)(fMCvz->Get("hvz"))->Clone("hMCvz_0");
     fDatavz = new TFile("DatavzDistro.root");
-<<<<<<< HEAD
     hDatavz = (TH1D*)(fDatavz->Get("hvzData"))->Clone("hDatavz");
-=======
-    hDatavz = (TH1D*)(fMCvz->Get("hvzData"))->Clone("hDatavz");
->>>>>>> 65aff381d47acba9f0fc82ba042827fd0ec5b9b1
     fBvz = new TFile("BvzDistr.root");
     hMCvz[1] = (TH1D*)(fBvz->Get("hvzB"))->Clone("hMCvz_1");
     
@@ -1295,7 +1287,6 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
       if(isMC){
 	t_pthat=pthat;
 	int j=0;
-<<<<<<< HEAD
 	while(pthat>pthatbin[j] && j<8) j++;
 	w = (wght[j-1]/MCentr[j]); //wght[0] = pthat>15, MCentr[0] = pthat<15.  I know it's dumb - bear with me.
         //std::cout << "pthat: "<< t_pthat << " between: "<< pthatbin[j-1] << " and " << pthatbin[j] << ", xsec: "<< wght[j-1] << " MCentr: " << MCentr[j] << std::endl;
@@ -1308,20 +1299,6 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
 	//if(vzbin>0&&vzbin<=30)vzWeight = hDatavz->GetBinContent(vzbin)/hMCvz[isFiltered]->GetBinContent(vzbin);
 	t_weight=w;//*vzWeight;	  
       }
-=======
-	while(pthat>pthatbin[j] && j<QCDpthatBins) j++;
-	  w = (wght[j-1]/MCentr[j]); //wght[0] = pthat>15, MCentr[0] = pthat<15.  I know it's dumb - bear with me.
-      }
-      if(isMC){
-	bool isFiltered=0;
-	if(isMC>1) isFiltered=1;
-	double vzWeight=0;
-	int vzbin = (int) TMath::Ceil(vz+15.+0.4);  // 0.4 is the pixel detector shift
-	if(vzbin>0&&vzbin<=30)vzWeight = hDatavz->GetBinContent(vzbin)/hMCvz[isFiltered]->GetBinContent(vzbin);
-	t_weight=w*vzWeight;	  
-      }
-      else t_weight=w;
->>>>>>> 65aff381d47acba9f0fc82ba042827fd0ec5b9b1
 
       int useEvent=0;
       
