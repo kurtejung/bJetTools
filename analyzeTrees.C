@@ -233,8 +233,8 @@ double trigComb(bool *trg, double *pscl, double pt){
   if(combinationMethod==4){
     if(trg[4]) weight = 1.;
     if(trg[3] && !trg[4]) weight = 1.;
-    if(trg[2] && !trg[3] && !trg[4]) weight = 1./(1./pscl[3] + 1./pscl[4] - 1./(pscl[3]*pscl[4]));
-    if(trg[1] && !trg[2] && !trg[3] && !trg[4]) weight = 1./(1./pscl[2] + 1./pscl[3] + 1./pscl[4] - 1./(pscl[2]*pscl[3]) - 1./(pscl[2]*pscl[4]) - 1./(pscl[3]*pscl[4]) + 1./(pscl[2]*pscl[3]*pscl[4]));
+    if(trg[2] && !trg[3] && !trg[4]) weight = 1.;
+    if(trg[1] && !trg[2] && !trg[3] && !trg[4]) weight = 1.;
     if(trg[0] && !trg[1] && !trg[2] && !trg[3] && !trg[4]) weight = 1./(1./pscl[0]);
   }
 
