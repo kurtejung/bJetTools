@@ -200,7 +200,7 @@ int *countMCevents(std::string infile, std::string HFfile, bool usePUsub, int is
 //[0] = Jet20, [1] = Jet40, [2] = Jet60, [3] = Jet80, [4] = Jet100
 
 double trigComb(bool *trg, double *pscl, double pt){
-  int combinationMethod = 2; // BE SURE TO CHANGE THE TRIGGER COMBINATION METHOD IF YOU DON'T LIKE THE ONE CHOSEN HERE BY DEFAULT!
+  int combinationMethod = 5; // BE SURE TO CHANGE THE TRIGGER COMBINATION METHOD IF YOU DON'T LIKE THE ONE CHOSEN HERE BY DEFAULT!
   double weight=0;
     
   //HIN-12-017 (charged part RpA) combination method - solid but loses events that slip through the pt bins
@@ -236,6 +236,16 @@ double trigComb(bool *trg, double *pscl, double pt){
     if(trg[2] && !trg[3] && !trg[4]) weight = 1.;
     if(trg[1] && !trg[2] && !trg[3] && !trg[4]) weight = 1.;
     if(trg[0] && !trg[1] && !trg[2] && !trg[3] && !trg[4]) weight = 1./(1./pscl[0]);
+  }
+
+  //Combination fix because the triggers are stacked vertically on one another
+  //i.e. triggers are not completely independent!
+  if(combinationMethod==5){
+    if(trg[4] && pt>100) weight = pscl[4];
+    if(!trg[4] && trg[3] && pt>=80 && pt<100) weight = pscl[3];
+    if(!trg[4] && !trg[3] && trg[2] && pt>=60 && pt<80) weight = pscl[2];
+    if(!trg[4] && !trg[3] && !trg[2] && trg[1] && pt>=40 && pt<60) weight = pscl[1];
+    if(!trg[4] && !trg[3] && !trg[2] && !trg[1] && trg[0] && pt<40) weight = pscl[0];
   }
 
   return weight;
@@ -288,7 +298,7 @@ double* getPscls(std::string infile, int nFiles, bool usePUsub){
 // ~~~ MAIN PROGRAM ~~~
 //**********************************************************
 
-void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1, int useGSP=0, int jetTrig=0, bool ExpandedTree=false, bool usePUsub=0)
+void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1, int useGSP=0, int jetTrig=0, bool ExpandedTree=false, bool usePUsub=0, bool useJetTrgAssociation=0)
 {
   // isMC=0 --> Real data, ==1 --> QCD, ==2 --> bJet, ==3 --> cJet
   Float_t minJetPt=30.;
@@ -532,7 +542,7 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     string jetRecoType;
     if(usePUsub) jetRecoType = "akPu3PF";
     else jetRecoType = "ak3PF";
-    string datoutfile = "pPbdata_ppreco_"+jetRecoType+"_jetTrig_etashift_FixTrgComb4_noIPupperCut_"+fileappend+".root";
+    string datoutfile = "pPbdata_ppreco_"+jetRecoType+"_jetTrig_etashift_FixTrgComb5_noIPupperCut_"+fileappend+".root";
     string QCDoutfile = "ppMC_ppReco_"+jetRecoType+"_QCDjetTrig_etashift_noIPupperCut_"+fileappend+".root";
     string Boutfile = "ppMC_ppReco_"+jetRecoType+"_BjetTrig_etashift_noIPupperCut_"+fileappend+".root";
     string Coutfile = "ppMC_ppReco_"+jetRecoType+"_CjetTrig_etashift_noIPupperCut_"+fileappend+".root";
@@ -1355,21 +1365,25 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
 	    for(unsigned int iObj=0; iObj<trgObjSize; iObj++){
 	      
 	      //apply coincidence cuts between the reco'd jet and the jet that actually fired the trigger
-	      if(abs(trigPhi[iObj]-jtphi[ij])<0.2 &&  abs(trigEta[iObj]-jteta[ij])<0.2 && trigPt[iObj]-TMath::Floor(trigPt[iObj])>0.0001){ 
-		triggerPt = trigPt[iObj];
-		if(triggerChecker==false){
-		  triggerChecker = true;
-		  w = trigComb(trgDec, treePrescl, triggerPt);
-		  //cout << "weight: " << w << endl;
-		}
-		else{
-		  cout << "warning! 2 hlt jets match coincidence eta/phi cuts! " << endl;
-		}
+	      if(useJetTrgAssociation){
+		if(!(abs(trigPhi[iObj]-jtphi[ij])<0.2 &&  abs(trigEta[iObj]-jteta[ij])<0.2 && trigPt[iObj]-TMath::Floor(trigPt[iObj])>0.0001)) continue;
+	      }
+	      else{
+		if(!(trigPt[iObj]-TMath::Floor(trigPt[iObj])>0.0001)) continue;
+	      }
+	      triggerPt = trigPt[iObj];
+	      if(triggerChecker==false){
+		if(useJetTrgAssociation) triggerChecker = true;
+		w = trigComb(trgDec, treePrescl, triggerPt);
+		//cout << "weight: " << w << endl;
+	      }
+	      else{
+		cout << "warning! 2 hlt jets match coincidence eta/phi cuts! " << endl;
 	      }
 	    }
-	    //  }
-	    //}
 	  }
+	  //  }
+	  //}
 	  t_weight=w;
 	  
 	  if(doNtuples){
