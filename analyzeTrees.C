@@ -7,6 +7,7 @@
 #include <string>
 #include <set>
 #include "TH1.h"
+#include "TF1.h"
 #include "TTree.h"
 #include "TFile.h"
 #include "TNtupleD.h"
@@ -19,9 +20,9 @@
 //These includes cause some complications in CMSSW_5_3_8_HI_patchX.  Commented out for pp.
 //If you want to recalculate the JECs on the fly again, just uncomment everything in the updateJEC blocks
 
-//#include "CondFormats/JetMETObjects/interface/FactorizedJetCorrector.h"
-//#include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
-//#include "CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h" 
+#include "CondFormats/JetMETObjects/interface/FactorizedJetCorrector.h"
+#include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
+#include "CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h" 
 
 using namespace std;
 
@@ -326,7 +327,7 @@ double triggerMatch(int trgObjSize, double* trigPhi, double* trigEta, double *tr
 // ~~~ MAIN PROGRAM ~~~
 //**********************************************************
 
-void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1, int useGSP=0, int jetTrig=0, bool ExpandedTree=false, bool usePUsub=0, bool useJetTrgAssociation=1, bool doMinBias=0)
+void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=1, int cbin=-1, int useGSP=0, int jetTrig=0, bool ExpandedTree=false, bool usePUsub=1, bool useJetTrgAssociation=1, bool doMinBias=0)
 {
   // isMC=0 --> Real data, ==1 --> QCD, ==2 --> bJet, ==3 --> cJet
   Float_t minJetPt=20.;
@@ -357,6 +358,14 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     hMCvz[1]->Scale(1./hMCvz[1]->Integral());
     hDatavz->Scale(1./hDatavz->Integral());
   }
+
+  TFile *f = new TFile("Casym_pPb_double_hcalbins_algo_akPu3PF_pt100_140_jet80_alphahigh_20_phicut250.root");
+  TFile *frev = new TFile("Casym_Pbp_double_hcalbins_algo_akPu3PF_pt100_140_jet80_alphahigh_20_phicut250.root");
+  TH1D *c_eta = (TH1D*)f->Get("C_asym");
+  TH1D *c_eta_rev = (TH1D*)frev->Get("C_asym");
+  TF1 *fcorr = new TF1("fcorr","1-[0]/pow(x,[1])",20,300);
+  if(usePUsub){ fcorr->SetParameter(0,0.3015); fcorr->SetParameter(1,0.8913); }
+  else{ fcorr->SetParameter(0,0.8648); fcorr->SetParameter(1,0.8167); }
 
   cout << "Analyzing Trees! Assuming " << QCDpthatBins << " QCD pthat bins, and " << HFpthatBins << " B/C pthat bins." << endl;
   if(usePUsub) cout << "Running on underlying event-subtracted jets!! (akPu3PF)" << endl;
@@ -893,12 +902,14 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
   Int_t t_refparton_flavorForB;
   Int_t trigIndex, t_bin;
   Int_t trgAssn;
+  Int_t t_run;
 
   Int_t t_nIP;
   Double_t t_ipPt[100], t_ipProb0[100];
   Int_t t_ipJetIndex[100];
 
   TTree *nt = new TTree("nt","");
+  nt->Branch("run",&t_run, "run/I");
   nt->Branch("jtpt",&t_jtpt,"jtpt/D");
   nt->Branch("jteta",&t_jteta,"jteta/D");
   nt->Branch("jtphi",&t_jtphi,"jtphi/D");
@@ -964,25 +975,30 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
 
   // grab the JEC's
    
-  //JetCorrectorParameters* parHI442x_l2, * parHI442x_l3;
-  // vector<JetCorrectorParameters> vpar_HI442x;   
-  // FactorizedJetCorrector *_JEC_HI442x=NULL;
-   
+  vector<JetCorrectorParameters> vpar_HI53x;   
+  FactorizedJetCorrector *JEC_HI53x;
+
   if(updateJEC){   
      
-    //cout<<" updating the JECs, USING REGPF "<<endl;
-
-    //string L2Name = "JEC/JEC_regPF_L2Relative_AK3PF.txt";
-    //string L3Name = "JEC/JEC_regPF_L3Absolute_AK3PF.txt";
-    string L2Name = "JEC/JEC_dijet_L2Relative_AK3PF.txt";
-    string L3Name = "JEC/JEC_dijet_L3Absolute_AK3PF.txt";
+    if(usePUsub) cout<<" updating the JECs, using AkPu3PF "<<endl;
+    else cout << "updating the JECs, using Ak3PF" << endl;
+    string L2Name;
+    string L3Name;
+    if(usePUsub){
+        L2Name="JEC_dijet_L2Relative_AKPu3PF.txt";
+        L3Name="JEC_dijet_L3Absolute_AKPu3PF.txt";
+    }
+    else{
+        L2Name="JEC_dijet_L2Relative_AK3PF.txt";
+        L3Name="JEC_dijet_L3Absolute_AK3PF.txt";
+    }
      
-    // parHI442x_l2 = new JetCorrectorParameters(L2Name.c_str());
-    //parHI442x_l3 = new JetCorrectorParameters(L3Name.c_str());
+    JetCorrectorParameters *parHI53x_l2 = new JetCorrectorParameters(L2Name.c_str());
+    JetCorrectorParameters *parHI53x_l3 = new JetCorrectorParameters(L3Name.c_str());
           
-    // vpar_HI442x.push_back(*parHI442x_l2);
-    // vpar_HI442x.push_back(*parHI442x_l3);
-    // _JEC_HI442x = new FactorizedJetCorrector(vpar_HI442x);
+    vpar_HI53x.push_back(*parHI53x_l2);
+    vpar_HI53x.push_back(*parHI53x_l3);
+    JEC_HI53x = new FactorizedJetCorrector(vpar_HI53x);
   }     
    
   std::ifstream instr(infile.c_str(), std::ifstream::in);
@@ -1340,15 +1356,6 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
 	if(foundEvt) continue;
       }
       
-      if(updateJEC){
-	
-	//for(int ij=0; ij<nref; ij++){	  
-	//  _JEC_HI442x->setJetEta(jteta[ij]);
-	//  _JEC_HI442x->setJetPt(rawpt[ij]);
-	//  jtpt[ij] = rawpt[ij]*_JEC_HI442x->getCorrection(); 
-	//}	
-      }
-      
       if(useWeight){
 	if(isMC)w=weight;
 	else if(ppPbPb){
@@ -1464,7 +1471,16 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
               }
           }
       }
-      
+
+      //run the correct L2L3 JECs for Pbp data...
+      for(int ij=0; ij<nref; ij++){
+          if(updateJEC && run>211300 && run<211635){
+              JEC_HI53x->setJetEta(jteta[ij]);
+              JEC_HI53x->setJetPt(rawpt[ij]);
+              jtpt[ij] = rawpt[ij]*JEC_HI53x->getCorrection();
+          }
+      }
+
       for(int ij=0; ij<nref; ij++){
 
 	trackPosition+=nselIPtrk[ij];
@@ -1489,7 +1505,8 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
 	if(isMC) etashift = 0.465;
 
         triggerPt=0;
-        if(jtpt[ij]>minJetPt && fabs(jteta[ij]+etashift)<maxJetEta){ 
+        //select jets in lab eta, but then fill eta_CM for analysis
+        if(jtpt[ij]>minJetPt && fabs(jteta[ij])<maxJetEta){ 
             //reweight jet-by-jet as demanded by the new STAR weighting algorithm
             if(!doMinBias && !ppPbPb && !isMC){
                 if(useJetTrgAssociation){
@@ -1515,9 +1532,14 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
             t_weight=w;
 	  
 	  if(doNtuples){
-	      
-	    t_jtpt=jtpt[ij];
-	    t_jteta=jteta[ij];
+            t_run = run;
+            
+            //apply doga's eta/pt dependent secondary jec's
+            if(run>210490 && run<211257) t_jtpt = jtpt[ij]*c_eta->GetBinContent(c_eta->FindBin(jteta[ij]));
+            else if(run>211300 && run<211635) t_jtpt = jtpt[ij]*c_eta_rev->GetBinContent(c_eta_rev->FindBin(jteta[ij]));
+            t_jtpt = t_jtpt*fcorr->Eval(jtpt[ij]);
+	    //t_jtpt=jtpt[ij];
+	    t_jteta=jteta[ij]+etashift;
 	    t_jtphi=jtphi[ij];
 	    t_rawpt=rawpt[ij];
 	    t_refpt=refpt[ij];
