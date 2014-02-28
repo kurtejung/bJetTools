@@ -19,6 +19,7 @@
 #include "DataFormats/HLTReco/interface/TriggerObject.h"
 //These includes cause some complications in CMSSW_5_3_8_HI_patchX.  Commented out for pp.
 //If you want to recalculate the JECs on the fly again, just uncomment everything in the updateJEC blocks
+//comment goes here
 
 #include "CondFormats/JetMETObjects/interface/FactorizedJetCorrector.h"
 #include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
