@@ -221,8 +221,8 @@ int *countMCevents(std::string infile, std::string HFfile, bool usePUsub, int is
 
 //[0] = Jet20, [1] = Jet40, [2] = Jet60, [3] = Jet80, [4] = Jet100
 
-double trigComb(bool *trg, double *pscl, double pt){
-    int combinationMethod = 6; // BE SURE TO CHANGE THE TRIGGER COMBINATION METHOD IF YOU DON'T LIKE THE ONE CHOSEN HERE BY DEFAULT!
+double trigComb(bool *trg, double *pscl, double pt, int combinationMethod=6){
+    //int combinationMethod = 6; // BE SURE TO CHANGE THE TRIGGER COMBINATION METHOD IF YOU DON'T LIKE THE ONE CHOSEN HERE BY DEFAULT!
     double weight=0;
 
     //HIN-12-017 (charged part RpA) combination method - solid but loses events that slip through the pt bins
@@ -357,7 +357,7 @@ double triggerMatch(int trgObjSize, double* trigPhi, double* trigEta, double *tr
 // ~~~ MAIN PROGRAM ~~~
 //**********************************************************
 
-void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=1, int cbin=-1, int useGSP=0, int jetTrig=0, bool ExpandedTree=false, bool usePUsub=1, bool useJetTrgAssociation=1, bool doMinBias=0)
+void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=1, int cbin=-1, int useGSP=0, int jetTrig=0, bool ExpandedTree=false, bool usePUsub=1, bool useJetTrgAssociation=1, bool doMinBias=0, bool doResCorr=0)
 {
     
     bool removeMisalignedRuns = 0;
@@ -451,7 +451,8 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
             infile = "wxie_MinBiasUPC_all.txt";
         }
         else if(!isMC){ 
-            infile = "PAHighPtPurdueForest_4th.txt"; //"pPbBForestList_Fixed_11-11.txt";
+            infile = "PAHighPtForest_4th.txt";
+            //infile = "PAHighPtPurdueForest_3rd.txt"; //"PAHighPtForest_4th.txt";
         }
         else if(isMC){
             infile = "pPbMCBForestListMerged.txt";
@@ -645,8 +646,8 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
         if(usePUsub) jetRecoType = "akPu3PF";
         else jetRecoType = "ak3PF";
         string datoutfile;
-        if(doMinBias) datoutfile = "pPbdata_ppreco_"+jetRecoType+"_MinBiasTrig_etashift_TrgCombMethod6_"+fileappend+".root";
-        else datoutfile = "pPbdata_ppreco_"+jetRecoType+"_jetTrig_etashift_FixTrgCombMethod6_WxieForest4_noIPupperCut_"+fileappend+".root";
+        if(doMinBias) datoutfile = "pPbdata_ppreco_"+jetRecoType+"_MinBiasTrig_etashift_"+fileappend+".root";
+        else datoutfile = "pPbdata_ppreco_"+jetRecoType+"_jetTrig_etashift_FinalTC_WxieForest4_FirstHalf_NoEvtSelection_NoResCorr_noIPupperCut_"+fileappend+".root";
         string QCDoutfile = "pPbMC_ppReco_"+jetRecoType+"_QCDjetTrig_etashift_WeightCorr_noIPupperCut_"+fileappend+".root";
         string Boutfile = "pPbMC_ppReco_"+jetRecoType+"_BjetTrig_etashift_noIPupperCut_"+fileappend+".root";
         string Coutfile = "pPbMC_ppReco_"+jetRecoType+"_CjetTrig_etashift_noIPupperCut_"+fileappend+".root";
@@ -670,6 +671,8 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
             else fout=new TFile("histos/ppdata_hiReco_jetTrig_regPFforJets.root","recreate");
         }
     }
+
+    TH1D *hyaxian = new TH1D("hyaxian","",1000,0,1000);
 
     TH1D *hbin = new TH1D("hbin","hbin",40,-0.5,39.5);
     TH1D *hbinw = new TH1D("hbinw","hbinw",40,-0.5,39.5);
@@ -955,11 +958,12 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     dTrgEta->Sumw2(); dTrgPhi->Sumw2();
 
     Double_t t_jtpt, t_jteta, t_jtphi, t_rawpt, t_refpt, t_discr_prob, t_discr_ssvHighEff, t_discr_ssvHighPur, t_discr_csvSimple, t_svtxm;
-    Double_t t_pthat, t_weight;
+    Double_t t_pthat, t_weight, t_maxTrgPt;
     Int_t t_refparton_flavorForB;
     Int_t trigIndex, t_bin;
     Int_t trgAssn;
     Int_t t_run;
+    Int_t evtSelection;
 
     Int_t t_nIP;
     Double_t t_ipPt[100], t_ipProb0[100];
@@ -1002,8 +1006,12 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
         nt->Branch("HLT_Jet100_noJetID_v1_Prescl",&HLT_PAJet100_NoJetID_v1_Prescl,"HLT_Jet100_noJetID_v1_Prescl/I");
         nt->Branch("HLT_Jet120_noJetID_v1_Prescl",&HLT_PAJet120_NoJetID_v1_Prescl,"HLT_Jet120_noJetID_v1_Prescl/I");
         nt->Branch("triggerPt",&triggerPt,"triggerPt/D");
+        nt->Branch("maxTrgPt",&t_maxTrgPt,"maxTrgPt/D");
 
         nt->Branch("pVertexFilterCutGplus",&pVertexFilterCutGplusUpsPP,"pVertexFilterCutGplus/I");
+        nt->Branch("vz",&vz,"vz/F");
+        nt->Branch("evtSelection",&evtSelection,"evtSelection/I");
+        
     }
 
     if(isMC) nt->Branch("pthat",&t_pthat,"pthat/D");
@@ -1303,11 +1311,6 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                     continue;
                 }
             }
-
-            //Cut to remove events that correspond to the twiki "good events" but not the golden lumi filter
-            if(!isMC){
-                if(((int)run==211821 && lumi>=57 && lumi<370) || ((int)run==211821 && lumi>420)) continue;
-            }
             
             if(!isMC && removeMisalignedRuns){
                 if(run>=210498 && run<=210658){
@@ -1317,12 +1320,11 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
 
             if(!ppPbPb){
                 if(!isMC){
-                    if(!pHBHENoiseFilter || !pprimaryvertexFilter || !pPAcollisionEventSelectionPA || !pVertexFilterCutGplusUpsPP) continue;
-                }
-                else{
-                    if(!pHBHENoiseFilter || !pPAcollisionEventSelectionPA) continue;
+            //        if(!pHBHENoiseFilter || !pprimaryvertexFilter || !pPAcollisionEventSelectionPA) continue;
                 }
             }
+            if(!pHBHENoiseFilter || !pprimaryvertexFilter || !pPAcollisionEventSelectionPA) evtSelection=0;
+            else evtSelection=1;
 
             if(doMinBias){ if(!HLT_PAZeroBiasPixel_SingleTrack_v1) continue;}
 
@@ -1361,7 +1363,7 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
 
             if(fabs(vz)>15.){
                 vzReject++; 
-                continue;
+              //  continue;
             }
             else vzPass++;
 
@@ -1443,7 +1445,6 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                     int j=0;
                     while(pthat>pthatbin[j] && j<9) j++;
                     w = ((wght[j-1]-wght[j])/MCentr[j]); //wght[0] = pthat>15, MCentr[0] = pthat<15.  I know it's dumb - bear with me.
-                    //std::cout << "pthat: "<< t_pthat << " between: "<< pthatbin[j-1] << " and " << pthatbin[j] << ", xsec: "<< wght[j-1] << " MCentr: " << MCentr[j] << std::endl;
 
                     //you can uncomment this bit to reweight based on mc/data vz as well
                     bool isFiltered=0;
@@ -1468,12 +1469,6 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                     jet80pscl+=HLT_PAJet80_NoJetID_v1_Prescl;
                     jet100pscl+=HLT_PAJet100_NoJetID_v1_Prescl;
                     nn++;
-                    //cout << "ps20: "<< HLT_PAJet20_NoJetID_v1_Prescl << endl;
-                    //cout << "ps40: "<< HLT_PAJet40_NoJetID_v1_Prescl << endl;
-                    //cout << "ps60: "<< HLT_PAJet60_NoJetID_v1_Prescl << endl;
-                    //cout << "ps80: "<< HLT_PAJet80_NoJetID_v1_Prescl << endl;
-                    //cout << "ps100: "<< HLT_PAJet100_NoJetID_v1_Prescl << endl;
-                    //quickChk=true;
                 }
 
                 double treePrescl[5] = {HLT_PAJet20_NoJetID_v1_Prescl, HLT_PAJet40_NoJetID_v1_Prescl, HLT_PAJet60_NoJetID_v1_Prescl, HLT_PAJet80_NoJetID_v1_Prescl, HLT_PAJet100_NoJetID_v1_Prescl};
@@ -1497,32 +1492,6 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                         trigPhi[ii][iObj] = HLT_PAJet_NoJetID_v1_trigObject[ii]->at(iObj).phi();
                     }
                 }
-                //Protection against random trigger benefit
-                int maxtrg= -1;
-                for(int ii=4; ii>=0; ii--){
-                    if(trgDec[ii]==1){
-                        maxtrg=ii;
-                        break;
-                    }
-                }
-                float maximumTrgPt=0;
-                bool rtBenefitFlag=0;
-                for(int ii=0; ii<5; ii++){
-                    for(unsigned int iObj=0; iObj<trgObjSize[ii]; iObj++){
-                        if(trigPt[ii][iObj]>=(20+maxtrg*20)) rtBenefitFlag=1;
-                        if(trigPt[ii][iObj]>maximumTrgPt) maximumTrgPt = trigPt[ii][iObj];
-                    }
-                }
-                if(!isMC && (maxtrg==-1 || !rtBenefitFlag)){
-                    cout << "event skipped from RT!" << endl;
-                    cout << "maxtrg: " << (20+20*maxtrg) << endl;
-                    cout << "trgPt: " << maximumTrgPt << endl;
-                    continue;
-                }
-                //end rtbenefit protection
-
-                std::set<int> usedObjNos;
-                std::set<int> usedtrgNos;
 
                 //Get all unmatched triggerPt values for ntTrg
                 for(int ii=0; ii<5; ii++){
@@ -1545,8 +1514,22 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                     }
                 }
 
-                for(int ij=0; ij<nref; ij++){
+                double maxtriggerPt=0;
+                double topPt=0;
+		// REVISED WEIGHTING METHOD 3-12-14 *~*~*~* SWITCH TO Evt-by-Evt WEIGHTING
+                //loop through fired triggers from low to high and pick out the highest triggerPt
+                for(int ii=0; ii<5; ii++){
+                    if(trgDec[ii]){
+                        for(int isize=0; isize<trgObjSize[ii]; isize++){
+                            double tPt = HLT_PAJet_NoJetID_v1_trigObject[ii]->at(isize).pt();
+                            if(tPt > maxtriggerPt && (tPt-TMath::Floor(tPt)) > 0.0001){ // check against integer (L1) trigger pT values
+                                maxtriggerPt = tPt;
+                            }
+                        }
+                    }      
+                }
 
+                for(int ij=0; ij<nref; ij++){
                     trackPosition+=nselIPtrk[ij];
 
                     if(useGSP==2){
@@ -1568,7 +1551,19 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                     if(run>211300 && run<211800) etashift = -0.465;
                     if(isMC) etashift = 0.465;
 
+                    //apply doga's eta/pt dependent secondary jec's
+                    //These should not close in MC - they were derived with tag and probe methods from data!
+                    if(!isMC && doResCorr){
+                        double tmppt=0;
+                        if(run>210497 && run<211300) tmppt = jtpt[ij]*c_eta->GetBinContent(c_eta->FindBin(jteta[ij]));
+                        else if(run>211300 && run<211800) tmppt = jtpt[ij]*c_eta_rev->GetBinContent(c_eta_rev->FindBin(jteta[ij]));
+                        tmppt *= fcorr->Eval(jtpt[ij]);
+                        if(jtpt[ij]==topPt) topPt = tmppt;
+                        jtpt[ij] = tmppt;
+                    }
+                
                     triggerPt=0;
+                    double w2=0;
                     //select jets in lab eta, but then fill eta_CM for analysis
                     if(jtpt[ij]>minJetPt && fabs(jteta[ij])<maxJetEta){ 
                         //reweight jet-by-jet as demanded by the new STAR weighting algorithm
@@ -1586,26 +1581,22 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                             }
                             else{
                                 triggerPt = jtpt[ij];
+                            //      triggerPt = topPt;
                             }
                             //w = trigComb(trgDec, pscls, triggerPt);
-                            w = trigComb(trgDec, treePrescl, triggerPt);
+                            w = trigComb(trgDec, treePrescl, maxtriggerPt, 6);
+                            w2 = trigComb(trgDec, treePrescl, jtpt[ij],1);
                         }
                         else if(doMinBias){
                             w = HLT_PAZeroBiasPixel_SingleTrack_v1_Prescl*L1_ZeroBias_Prescl;
                         }
                         t_weight=w;
-
+                        
+                        if(evtSelection && abs(vz)<15) hyaxian->Fill(jtpt[ij],w2);
+                        
                         if(doNtuples){
                             t_run = run;
-                            //apply doga's eta/pt dependent secondary jec's
-                            //These should not close in MC - they were derived with tag and probe methods from data!
-                            if(!isMC){
-                                if(run>210497 && run<211300) t_jtpt = jtpt[ij]*c_eta->GetBinContent(c_eta->FindBin(jteta[ij]));
-                                else if(run>211300 && run<211800) t_jtpt = jtpt[ij]*c_eta_rev->GetBinContent(c_eta_rev->FindBin(jteta[ij]));
-                                t_jtpt = t_jtpt*fcorr->Eval(jtpt[ij]);
-                            }
-                            else t_jtpt = jtpt[ij];
-                            //t_jtpt = jtpt[ij];
+                            t_jtpt = jtpt[ij];
                             if(run>210497 && run<211300) t_jteta=jteta[ij]+etashift;
                             else if(run>211300 && run<211800) t_jteta= -1*(jteta[ij]+etashift); //reverse the eta to achieve CNM effect consistency
                             t_jtphi=jtphi[ij];
@@ -1617,7 +1608,7 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                             t_discr_ssvHighPur=discr_ssvHighPur[ij];
                             t_discr_csvSimple=discr_csvSimple[ij];
                             t_svtxm=svtxm[ij];
-
+                            t_maxTrgPt=maxtriggerPt;
                             //Find jet tracks that correspond to the jet & apply proximity cuts
                             if(ExpandedTree){
                                 t_nIP=nselIPtrk[ij];
@@ -2063,8 +2054,6 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                     }
 
                     //reset event-level containers
-                    usedObjNos.clear();
-                    usedtrgNos.clear();
                     for(int ii=0; ii<5; ii++){ HLT_PAJet_NoJetID_v1_trigObject[ii]->clear(); } 
                 } 
 
@@ -2082,6 +2071,8 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
             cout << "jet100pscl: "<< (double)jet100pscl/(double)nn << endl;
 
             fout->cd();
+
+            hyaxian->Write();
 
             hbin->Write(); hbinw->Write(); hvz->Write(); hvzw->Write();
 
