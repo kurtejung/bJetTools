@@ -28,42 +28,41 @@
 using namespace std;
 
 // Truth binning
-//static const int nbins_truth = 12;
-static const int nbins_truth = 14;
+static const int nbins_truth = 16;  //nbins for B-jets
 //static const int nbins_truth = 18;
 //static const int nbins_truth = 29;
 static const double boundaries_truth[nbins_truth+1] = {
-  0,5,10,15,20,25,30,35,40,60,80,110,150,190,300
+  0,5,10,15,20,25,30,35,40,55,70,90,110,140,170,220,400 //boundaries for B-jets
   //0,5,10,15,20,25,30,35,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200,210,220,230,240,250
   //0,5,10,15,20,25,30,40,70,100,130,160,190
 };
 
+//boundaries for inclusive jets
+//static const int nbins_truth = 29;
+//static const double boundaries_truth[nbins_truth+1] = {3,4,5,7,9,12,15,18,22,27,33,39,47,55,64,74,84,97,114,133,153,174,196,220,245,272,300,429,692,1000};
+
 // Measurement binning
-//static const int nbins_rec = 12;
-static const int nbins_rec = 14;
-//static const int nbins_rec = 29;
+static const int nbins_rec = 16; //bjet nbins
 static const double boundaries_rec[nbins_rec+1] = {
-  0,5,10,15,20,25,30,35,40,60,80,110,150,190,300
-  //0,5,10,15,20,25,30,35,40,45,50,55, 60,70,80,90,110,250
-  //0,5,10,15,20,25,30,35,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200,210,220,230,240,250
-  //0,5,10,15,20,25,30,40,70,100,130,160,190
+  0,5,10,15,20,25,30,35,40,55,70,90,110,140,170,220,400 //bjet boundaries
 };
+
+//inclusive jet binning
+//static const int nbins_rec = 29;
+//static const double boundaries_rec[nbins_rec+1] = {3,4,5,7,9,12,15,18,22,27,33,39,47,55,64,74,84,97,114,133,153,174,196,220,245,272,300,429,692,1000};
+
 
 //0.147962=50,  0.333594=60,  0.660276=70,  0.895285=80,  0.962878=90,  0.98712=100
 static const double trigEffInc[nbins_rec]={
   // analysis bins
-  0.,0.,0.,0.,0.,0.,0.562865,0.749366,0.937358,0.999103,0.999454,1.,1.,1. //pPb Analysis bins
-  //0.,0.,0.,0.,0.,0.,0.147962,0.333594,0.660276,0.895285, 0.962878,0.999665, 1., 1., 1., 1.
-  //0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,  0.966051, 0.99591,0.999665, 1., 1.
-  // fixed bins
-  //0.,0.,0.,0.,0.,0.,0.,0.,  0.147962,  0.333594,  0.660276,  0.895285,  0.962878,  0.98712,  0.996501,  0.998231,  0.999611,  0.999245,  1.,  0.998698,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.
-  //big fix bin size
-  //1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.
+  0.,0.,0.,0.975143,0.986269,0.993634,0.998076,0.999427,0.999889,1.,1.,1.,1.,1.,1.,1. //pPb b-jet Analysis bins
+  //0,0,0,0,0,0,0,0,0,0.517016,0.685106,0.886513,0.975769,0.995692,0.999366,0.999938,0.999415,1,1,1,1,1,1,1,1,1,1,1,1 //pPb incl jet bins
+ 
 };
 
 static const double trigEffbJet[nbins_rec]={
   // analysis bins
-  0.,0.,0.,0.,0.,0.,0.528269,0.722385,0.928059,1.,0.981338,1.,1.,1.
+  0.,0.,0.,0.967522,0.982672,0.98979,0.995919,0.997936,1.,1.,1.,1.,1.,1.,1.,1.
   //0.,0.,0.,0.,0.,0.,0.,0.,0.183863,  0.427385,  0.777265,  0.951006,  0.988485, 0.996636, 0.999653, 0.99986, 1.
   //0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0., 0.903361, 0.979075, 0.991913, 0.996636, 1., 1.
   // fixed bins
@@ -74,7 +73,7 @@ static const double trigEffbJet[nbins_rec]={
 
 static const double trigEffppInc[nbins_rec]={
   // analysis bins
-  0.,0.,0.,0.,0.,0.,0.555837,0.740753,0.929828,0.999286,0.999962,1.,1.,1.
+  0.,0.,0.,0.964,0.9727,0.988693,0.995348,0.999018,0.999953,1.,1.,1.,1.,1.,1.,1.
   //0.,0.,0.,0.,0.,0.,0.,0.,0.183863,  0.427385,  0.777265,  0.951006,  0.988485, 0.996636, 0.999653, 0.99986, 1.
   //0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0., 0.903361, 0.979075, 0.991913, 0.996636, 1., 1.
   // fixed bins
@@ -85,7 +84,8 @@ static const double trigEffppInc[nbins_rec]={
 
 static const double trigEffppbJet[nbins_rec]={
   // analysis bins
-  0.,0.,0.,0.,0.,0.,0.5167,0.677148,0.91497,0.998518,1.,1.,1.,1.
+  0.,0.,0.,0.974,0.984978,0.994189,0.998536,0.999589,0.999879,0.99999,1.,1.,1.,1.,1.,1.
+  //0.,0.,0.,0.,0.,0.,0.5167,0.677148,0.91497,0.998518,1.,1.,1.,1.
   //0.,0.,0.,0.,0.,0.,0.,0.,0.183863,  0.427385,  0.777265,  0.951006,  0.988485, 0.996636, 0.999653, 0.99986, 1.
   //0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0., 0.903361, 0.979075, 0.991913, 0.996636, 1., 1.
   // fixed bins
@@ -94,24 +94,24 @@ static const double trigEffppbJet[nbins_rec]={
   //1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.
 };
 
-
-//static const int nbins_recrebin = 17;
+//b-jets
 static const int nbins_recrebin = 14;
-//static const int nbins_recrebin = 29;
 static const double boundaries_recrebin[nbins_recrebin+1] = {
   0,5,10,15,20,25,30,35,40,60,80,110,150,190,300
-  //0,5,10,15,20,25,30,35,40,45,50,55, 60,70,80,90,110,170,250
-  //0,5,10,15,20,25,30,35,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200,210,220,230,240,250
 };
 
-static const int nbins_recrebinM = 9;
+//inclusive jets
+//static const int nbins_recrebin = 29;
+//static const double boundaries_recrebin[nbins_recrebin+1] = {3,4,5,7,9,12,15,18,22,27,33,39,47,55,64,74,84,97,114,133,153,174,196,220,245,272,300,429,692,1000};
+
+static const int nbins_recrebinM = 11;
 //static const int nbins_recrebinM = 10;
 static const double boundaries_recrebinM[nbins_recrebinM+1] = {
-  0,15,30, 40, 60, 80, 110, 150, 190, 300
+  0,15,30,40,55,70,90,110,140,170,220,400
 };
 static const int nbins_recrebin_Npart = 1;
 static const double boundaries_recrebin_Npart[nbins_recrebin_Npart+1] = {
-	30, 300
+	30, 400
 };
 
 static const int nColor = 20;
@@ -409,6 +409,7 @@ public:
     tJet->SetBranchAddress("refparton_flavorForB",&refparton_flavorForB);
     tJet->SetBranchAddress("discr_ssvHighEff",&discr_ssvHighEff);
     tJet->SetBranchAddress("bin",&bin);
+    tJet->SetBranchAddress("pVertexFilterCutGplus",&gPlus);
   };
 
   TFile *tFile;
@@ -422,7 +423,8 @@ public:
   double discr_ssvHighEff;
   double pthat;
   int njets;
-  int bin;     
+  int bin;
+  int gPlus;
 };
 
 
@@ -457,7 +459,8 @@ public:
   double pthat;
   int njets;
   int bin;     
-  int isTrig;     
+  int isTrig;
+
 };
 
 class JetDatapPb
@@ -475,6 +478,7 @@ public:
     tJet->SetBranchAddress("refparton_flavorForB",&refparton_flavorForB);
     tJet->SetBranchAddress("discr_ssvHighEff",&discr_ssvHighEff);
     tJet->SetBranchAddress("bin",&bin);
+    tJet->SetBranchAddress("pVertexFilterCutGplus",&gPlus);
   };
 
   TFile *tFile;
@@ -487,7 +491,8 @@ public:
   double discr_ssvHighEff;
   double pthat;
   int njets;
-  int bin;       
+  int bin;
+  int gPlus;
 };
 
 

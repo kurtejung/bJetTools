@@ -24,7 +24,7 @@ using namespace std;
 // Update Yen-Jie Lee 06.22.12
 //==============================================================================
 
-void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, int doToy = 0, int isMC = 0,char *spectraFileName = (char*)"pbpb_spectra_ak3PF.root",double recoJetPtCut = 30., int nBayesianIter = 4, int doBjets=1, int doTrigEffCorr=1, int priorGenOrBin=0, int doSkew=0, int doJESshift=0, bool doResSmear=false, int centBin=0) 
+void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, int doToy = 0, int isMC = 0,char *spectraFileName = (char*)"pbpb_spectra_ak3PF.root",double recoJetPtCut = 25., int nBayesianIter = 4, int doBjets=1, int doTrigEffCorr=1, int priorGenOrBin=0, int doSkew=0, int doJESshift=0, bool doResSmear=false, int centBin=0) 
 {
   
   gStyle->SetErrorX(0.);
@@ -45,7 +45,13 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
   char *fileNamePbPb_data = NULL;
   
   int cBinLo=0;
-  int cBinHi=40;
+  int cBinHi=100;
+
+  float etalo=1.;
+  float etahi=2.;
+
+  float ppetalo = etalo+0.465;
+  float ppetahi = etahi+0.465;
 
   if(centBin==1) cBinHi=4;
   if(centBin==2) {
@@ -61,17 +67,17 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 
   // pp file needs replacing
 
-  if(doBjets)fileNamePP_data = (char*)"output/MCpp_NewFormatV7_ak3PF_fixBin_502TeV_bFractionMCTemplate_pPbpp1_jetptcut30_SSVHEat2.0FixCL0_bin_0_40_eta_0_2.root";
-  else fileNamePP_data = (char*)Form("output/MCpp_NewFormatV7_ak3PF_fixBin_502TeV_bFractionMCTemplate_pPbpp1_jetptcut30_SSVHEat2.0FixCL0_bin_0_40_eta_0_2.root");
+  if(doBjets)fileNamePP_data = (char*)Form("output/ppMC_akPu3PF_matchBin0_gsp0_discrGT2_eta%.1fTo%.1f.root",ppetalo,ppetahi);
+  else fileNamePP_data = (char*)"output/ppMC_ak3PF_matchBinToYaxian0_gsp0_discrGT2_eta-0.5To1.5.root";
 
-  if(doBjets) fileNamePbPb_data = (char*)"output/NewFormatV11_FixedTrgMerging2_ak3PF_fixBin_bFractionMCTemplate_pPbpp1_jetptcut30_SSVHEat2.0FixCL0_bin_0_40_eta_0_2.root";
-  else fileNamePbPb_data = (char*)"output/NewFormatV11_FixedTrgMerging2_ak3PF_fixBin_bFractionMCTemplate_pPbpp1_jetptcut30_SSVHEat2.0FixCL0_bin_0_40_eta_0_2.root";
+  if(doBjets) fileNamePbPb_data = (char*)Form("output/NewFormatV16_FixedTrgMergingFinal_akPu3PF_consistentEta_fixBin_bFractionMCTemplate_pPbpp1_gsp0_jetptcut30_SSVHEat2.0FixCL0_bin_0_100_eta_%.1f_%.1f.root",etalo,etahi);
+  else fileNamePbPb_data = (char*)"histos/pPbData_PUForest4_kurtTrgComb_etaLT1_ak3PF_noGplus_luminorm_forunfolding.root";
  
-  if(doBjets) fileNamePP_mc = (char*)"histos/ppMC_ppReco_502TeV_ak3PF_QCDjetTrig_noJetcut_noIPupperCut_pp502TeV.root";
-  else fileNamePP_mc = (char*)"histos/ppMC_ppReco_502TeV_ak3PF_QCDjetTrig_noJetcut_noIPupperCut_pp502TeV.root";
+  if(doBjets) fileNamePP_mc = (char*)"histos/ppMC_ppReco_akPu3PF_QCDjetTrig_etashift_MCWeightFinalWithVz_noTrgSelection_noIPupperCut_8.root";
+  else fileNamePP_mc = (char*)"histos/ppMC_ppReco_akPu3PF_QCDjetTrig_etashift_MCWeightFinalWithVz_noTrgSelection_noIPupperCut_8.root";
   
-  if(doBjets)fileNamePbPb_mc = (char*) "histos/pPbMC_ppReco_ak3PF_QCDjetTrig_etashift_noIPupperCut_merged_WeightingFix.root";
-  else fileNamePbPb_mc = (char*) "histos/pPbMC_ppReco_ak3PF_QCDjetTrig_etashift_noIPupperCut_merged_WeightingFix.root";
+  if(doBjets)fileNamePbPb_mc = (char*) "histos/pPbMC_ppReco_akPu3PF_QCDjetTrig_etashift_WeightMethodB_FinalMergeWithVz_noIPupperCut_7.root";
+  else fileNamePbPb_mc = (char*) "histos/pPbMC_ppReco_akPu3PF_QCDjetTrig_etashift_WeightMethodB_FinalMergeWithVz_noIPupperCut_7.root";
 
 
   // grab ntuples
@@ -82,7 +88,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
   string bJetString = "Inc";
   if(doBjets) bJetString = "bJets";
   
-  char* jetType = "ak3PF";
+  string jetType = "akPu3PF";
 
   string skewString = "";
   if(doSkew==1)skewString = "_skewPos";
@@ -97,8 +103,8 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 
   // Output file
   TFile *pbpb_Unfo;
-  if (isMC) pbpb_Unfo = new TFile(Form("pbpb_Unfo_%s_%s_MC_v2.root",jetType,algoName[algo]),"RECREATE");
-  else pbpb_Unfo  = new TFile(Form("pbpb_Unfo_%s_%s_jtpt%.0f_%s_clo%d_chi%d_v8%s%s%s.root",jetType,algoName[algo],recoJetPtCut,bJetString.c_str(),cBinLo,cBinHi,skewString.c_str(),resSmearString.c_str(),shiftString.c_str()),"RECREATE");
+  if (isMC) pbpb_Unfo = new TFile(Form("pPb_Unfo_%s_%s_eta_%.1fTo%.1f_MC_v2.root",jetType.c_str(),algoName[algo],etalo,etahi),"RECREATE");
+  else pbpb_Unfo  = new TFile(Form("pPb_Unfo_%s_%s_noGplus_jtpt%.0f_%s_clo%d_chi%d_v8%s%s%s_eta_%.1fTo%.1f_.root",jetType.c_str(),algoName[algo],recoJetPtCut,bJetString.c_str(),cBinLo,cBinHi,skewString.c_str(),resSmearString.c_str(),shiftString.c_str(),etalo,etahi),"RECREATE");
 
   // Histograms used by RooUnfold
   UnfoldingHistos *uhist[nbins_cent+1];
@@ -153,13 +159,14 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
       
 	
       if ( dataPbPb->refpt  < 0. ) continue;
-      if ( dataPbPb->jteta  > 2. || dataPbPb->jteta < -2. ) continue;
+      if ( dataPbPb->jteta  > etahi || dataPbPb->jteta < etalo ) continue;
+      //if ( !dataPbPb->gPlus ) continue;
       if (doBjets && fabs(dataPbPb->refparton_flavorForB)!=5) continue;
       //if (doBjets&& dataPbPb->discr_ssvHighEff<2) continue;
       //if (!doTrigEffCorr && dataPbPb->isTrig <1) continue;
       //if ( dataPbPb->isTrig <1) continue;
       //if( dataPbPb->bin < cBinLo || dataPbPb->bin >= cBinHi) continue;
-      if( dataPbPb->rawpt<20.) continue;
+      if( dataPbPb->jtpt/dataPbPb->rawpt>1.5) continue;
 
       if(doResSmear){
 	double sigSmear = fResPbPb->Eval(dataPbPb->refpt) * sqrt(0.1*0.1 + 2*0.1);
@@ -208,11 +215,12 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
       dataPP->tJet->GetEntry(jentry2);
       
       if ( dataPP->refpt<0) continue;
-      if ( dataPP->jteta  > 2. || dataPP->jteta < -2. ) continue;
+      if ( dataPP->jteta  > etahi+0.465 || dataPP->jteta < etalo+0.465 ) continue;
+      //if ( !dataPP->gPlus ) continue;
       ///if ( dataPP->refpt<0) dataPP->refpt=0;
       if ( doBjets && fabs(dataPP->refparton_flavorForB)!=5) continue;
       //if ( doBjets && dataPP->discr_ssvHighEff<2) continue;
-      if( dataPP->rawpt<20.) continue;  // protect against bad JEC fit
+      if( dataPP->jtpt/dataPP->rawpt>1.5) continue;  // protect against bad JEC fit
 
       if(doResSmear){
 	double sigSmear = fResPP->Eval(dataPP->refpt) * sqrt(0.1*0.1 + 2*0.1);
@@ -367,7 +375,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
       	float binContent = hMattPP->GetBinContent(i);  
 	float binError = hMattPP->GetBinError(i);  
 	
-	if(doBjets){
+	/*if(doBjets){
 	  float tagEff =hTagEffPP->GetBinContent(i);
 	  float tagEffErr =     hTagEffPP->GetBinError(i);   
 	  if(tagEff>0){
@@ -376,7 +384,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 	    binContent /= tagEff;
 	  }
 	  else cout<<"pp TAGEFF = 0"<<endl;	  
-	}
+	  }*/
 	
      	float binCenter = hMattPP->GetBinCenter(i);  
 	if(binCenter - hMattPP->GetBinWidth(i)/2.  < recoJetPtCut) continue;
@@ -536,7 +544,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
     hBinByBinCorRaw->Divide(hMCGen);
     TF1 *f = new TF1("f","[0]+[1]*x");
 
-    hBinByBinCorRaw->Fit("f","LL ","",40,250);
+    hBinByBinCorRaw->Fit("f","LL ","",40,600);
     TH1F* hBinByBinCor = (TH1F*)hBinByBinCorRaw->Clone();//functionHist(f,hBinByBinCorRaw,Form("hBinByBinCor_cent%d",i));
     uhist[i]->hRecoBinByBin = (TH1F*) uhist[i]->hMeas->Clone(Form("hRecoBinByBin_cent%d",i));
     uhist[i]->hRecoBinByBin->Divide(hBinByBinCor);
@@ -549,11 +557,11 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
     else hPrior=(TH1F*)hMCGen->Clone(Form("hPrior_cent%d",i));
     //hPrior = (TH1F*)uhist[i]->hMeas->Clone(Form("hPrior_cent%d",i));
 
-    //TF1 *fSkew = new TF1("fShift","0.2/100.*x+0.7",50,250);
+    //TF1 *fSkew = new TF1("fShift","0.2/100.*x+0.7",50,600);
     if(doSkew){
       TF1 *fSkew = NULL;
-      if(doSkew==1)fSkew = new TF1("fShift","0.5/100.*x+0.25",40,250);
-      else fSkew = new TF1("fShift","-0.5/100.*x+1.75",40,250);
+      if(doSkew==1)fSkew = new TF1("fShift","0.5/100.*x+0.25",40,600);
+      else fSkew = new TF1("fShift","-0.5/100.*x+1.75",40,600);
       for(int ib=0;ib<hPrior->GetNbinsX();ib++){
 	hPrior->SetBinContent(ib+1,hPrior->GetBinContent(ib+1)*fSkew->Eval(hPrior->GetBinCenter(ib+1)));
       }
@@ -668,7 +676,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
     uhist[i]->hReco->SetYTitle("dN/dp_{T} (GeV/c)^{-1}");    
     uhist[i]->hReco->GetXaxis()->SetNdivisions(505);
     //uhist[i]->hReco->Draw("");    
-    uhist[i]->hReco->SetAxisRange(40.,250.,"X");
+    uhist[i]->hReco->SetAxisRange(40.,400.,"X");
     uhist[i]->hReco->Draw("");   
      
     uhist[i]->hGen->SetLineWidth(2);
@@ -678,7 +686,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
     uhist[i]->hRecoBinByBin->SetMarkerStyle(28);
     uhist[i]->hRecoBinByBin->Draw("same");    
 
-    uhist[i]->hReco->SetAxisRange(40.,250.);
+    uhist[i]->hReco->SetAxisRange(40.,400.);
     TH1F *hReproduced = (TH1F*)myUnfolding.hReproduced->Clone(Form("hReproduced_cent%d",i));
     hReproduced->SetMarkerColor(4);
     hReproduced->SetMarkerStyle(24);
@@ -719,10 +727,10 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
     leg->Draw();
 
     cPbPbMeas->cd(i+1)->SetLogy();   
-    //uhist[i]->hMeas->SetAxisRange(0,240,"X");
+    //uhist[i]->hMeas->SetAxisRange(0,600,"X");
     //uhist[i]->hMeas->Draw();
     //hReproduced->Draw("same");
-    hMeasBW[i]->SetAxisRange(40,240,"x");
+    hMeasBW[i]->SetAxisRange(40,600,"x");
     hMeasBW[i]->SetXTitle("p_{T} (GeV/c)");
     hMeasBW[i]->SetYTitle("dN/p_{T} (GeV/c)^{-1}");
     hMeasBW[i]->Draw();
@@ -746,7 +754,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
   pbpb_Unfo->Write();
 
   SysData systematics;
-  TLine *line = new TLine(40.,1,250.,1);
+  TLine *line = new TLine(40.,1,400.,1);
 
   // Iteration systematics
   TCanvas *cIterSys = new TCanvas("cIterSys","cIterSys",1200,600);
@@ -768,7 +776,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
       makeHistTitle(hRecoIterSysPP[j],(char*)"",(char*)"Jet p_{T} (GeV/c)",(char*)"Ratio (Nth Iteration / Nominal)");
       hRecoIterSysPP[j]->SetTitleOffset(1.4,"Y");
       hRecoIterSysPP[j]->SetTitleOffset(1.2,"X");
-      hRecoIterSysPP[j]->SetAxisRange(40.,250.,"X");
+      hRecoIterSysPP[j]->SetAxisRange(40.,400.,"X");
       hRecoIterSysPP[j]->SetAxisRange(0.8,1.2,"Y");
       hRecoIterSysPP[j]->Draw("hist"); 
     } else {
@@ -802,7 +810,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
       makeHistTitle(hRecoIterSysPbPb[j],(char*)"",(char*)"Jet p_{T} (GeV/c)",(char*)"Ratio (Nth Iteration / Nominal)");
       hRecoIterSysPbPb[j]->SetTitleOffset(1.4,"Y");
       hRecoIterSysPbPb[j]->SetTitleOffset(1.2,"X");
-      hRecoIterSysPbPb[j]->SetAxisRange(40.,250.,"X");
+      hRecoIterSysPbPb[j]->SetAxisRange(40.,400.,"X");
       hRecoIterSysPbPb[j]->SetAxisRange(0.8,1.2,"Y");
       hRecoIterSysPbPb[j]->Draw("hist"); 
     } else {
