@@ -15,6 +15,7 @@
 #include "utilities.h"
 #include "bayesianUnfold.h"
 #include "prior.h"
+#include "generateSmearingMatrix.h"
 
 using namespace std;
 
@@ -24,8 +25,11 @@ using namespace std;
 // Update Yen-Jie Lee 06.22.12
 //==============================================================================
 
-void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, int doToy = 0, int isMC = 0,char *spectraFileName = (char*)"pbpb_spectra_ak3PF.root",double recoJetPtCut = 25., int nBayesianIter = 4, int doBjets=1, int doTrigEffCorr=1, int priorGenOrBin=0, int doSkew=0, int doJESshift=0, bool doResSmear=false, int centBin=0) 
+void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, int doToy = 0, int isMC = 0,char *spectraFileName = (char*)"pbpb_spectra_ak3PF.root",double recoJetPtCut = 30., int nBayesianIter = 6, int doBjets=1, int doTrigEffCorr=0, int priorGenOrBin=0, int doSkew=0, int doJESshift=0, bool doResSmear=false, int centBin=0) 
 {
+
+  bool doParameterizedMatrix = 1;
+  double genJetPtCut=20;
   
   gStyle->SetErrorX(0.);
   gStyle->SetPaintTextFormat("3.2f");
@@ -47,7 +51,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
   int cBinLo=0;
   int cBinHi=100;
 
-  float etalo=1.;
+  float etalo=-2.;
   float etahi=2.;
 
   float ppetalo = etalo+0.465;
@@ -67,17 +71,17 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 
   // pp file needs replacing
 
-  if(doBjets)fileNamePP_data = (char*)Form("output/ppMC_akPu3PF_matchBin0_gsp0_discrGT2_eta%.1fTo%.1f.root",ppetalo,ppetahi);
+  if(doBjets)fileNamePP_data = (char*)Form("output/ppMC_akPu3PF_bJet_TEST_matchBin0_gsp0_discrSSVHEGT2_eta%.1fTo%.1f.root",ppetalo,ppetahi);
   else fileNamePP_data = (char*)"output/ppMC_ak3PF_matchBinToYaxian0_gsp0_discrGT2_eta-0.5To1.5.root";
 
-  if(doBjets) fileNamePbPb_data = (char*)Form("output/NewFormatV16_FixedTrgMergingFinal_akPu3PF_consistentEta_fixBin_bFractionMCTemplate_pPbpp1_gsp0_jetptcut30_SSVHEat2.0FixCL0_bin_0_100_eta_%.1f_%.1f.root",etalo,etahi);
-  else fileNamePbPb_data = (char*)"histos/pPbData_PUForest4_kurtTrgComb_etaLT1_ak3PF_noGplus_luminorm_forunfolding.root";
+  if(doBjets) fileNamePbPb_data = (char*)Form("output/NewFormatV16_FixedTrgMergingFinal_akPu3PF_consistentEta_FirstDataHalf_fixBin_bFractionMCTemplate_pPbpp1_gsp0_jetptcut30_SSVHEat2.0FixCL0_bin_0_100_eta_%.1f_%.1f.root",etalo,etahi);
+  else fileNamePbPb_data = (char*)"histos/PUForest_akpu3pf_etaLT1_FirstHalf_noGplus_forUnfolding.root";
  
-  if(doBjets) fileNamePP_mc = (char*)"histos/ppMC_ppReco_akPu3PF_QCDjetTrig_etashift_MCWeightFinalWithVz_noTrgSelection_noIPupperCut_8.root";
-  else fileNamePP_mc = (char*)"histos/ppMC_ppReco_akPu3PF_QCDjetTrig_etashift_MCWeightFinalWithVz_noTrgSelection_noIPupperCut_8.root";
+  if(doBjets) fileNamePP_mc = (char*)"histos/ppMC_ppReco_akPu3PF_QCDjetTrig_etashift_Fix2Sample_MCWeightFinalWithVz_noTrgSelection_Full.root";
+  else fileNamePP_mc = (char*)"histos/ppMC_ppReco_akPu3PF_QCDjetTrig_etashift_Fix2Sample_MCWeightFinalWithVz_noTrgSelection_Full.root";
   
-  if(doBjets)fileNamePbPb_mc = (char*) "histos/pPbMC_ppReco_akPu3PF_QCDjetTrig_etashift_WeightMethodB_FinalMergeWithVz_noIPupperCut_7.root";
-  else fileNamePbPb_mc = (char*) "histos/pPbMC_ppReco_akPu3PF_QCDjetTrig_etashift_WeightMethodB_FinalMergeWithVz_noIPupperCut_7.root";
+  if(doBjets)fileNamePbPb_mc = (char*) "histos/pPbMC_ppReco_akPu3PF_QCDjetTrig_etashift_noTrgSelection_MCWeightFinalWithSmoothedVzCentWeight_vZcut_noHBHE_8.root";
+  else fileNamePbPb_mc = (char*) "histos/pPbMC_ppReco_akPu3PF_QCDjetTrig_etashift_noTrgSelection_MCWeightFinalWithSmoothedVzCentWeight_vZcut_noHBHE_8.root";
 
 
   // grab ntuples
@@ -104,7 +108,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
   // Output file
   TFile *pbpb_Unfo;
   if (isMC) pbpb_Unfo = new TFile(Form("pPb_Unfo_%s_%s_eta_%.1fTo%.1f_MC_v2.root",jetType.c_str(),algoName[algo],etalo,etahi),"RECREATE");
-  else pbpb_Unfo  = new TFile(Form("pPb_Unfo_%s_%s_noGplus_jtpt%.0f_%s_clo%d_chi%d_v8%s%s%s_eta_%.1fTo%.1f_.root",jetType.c_str(),algoName[algo],recoJetPtCut,bJetString.c_str(),cBinLo,cBinHi,skewString.c_str(),resSmearString.c_str(),shiftString.c_str(),etalo,etahi),"RECREATE");
+  else pbpb_Unfo  = new TFile(Form("pPb_Unfo_%s_%s_noGplus_FirstHalf_Converged_jtpt%.0f_%s_clo%d_chi%d_v8%s%s%s_eta_%.1fTo%.1f_.root",jetType.c_str(),algoName[algo],recoJetPtCut,bJetString.c_str(),cBinLo,cBinHi,skewString.c_str(),resSmearString.c_str(),shiftString.c_str(),etalo,etahi),"RECREATE");
 
   // Histograms used by RooUnfold
   UnfoldingHistos *uhist[nbins_cent+1];
@@ -119,7 +123,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 	     	
   // Setup jet data branches, basically the jet tree branches are assigned to this object when we loop over the events
 	
-  JetDataPP *dataPbPb   = new JetDataPP(fileNamePbPb_mc,(char*)"nt"); // pPb data	
+  JetDatapPb *dataPbPb   = new JetDatapPb(fileNamePbPb_mc,(char*)"nt"); // pPb data	
   JetDataPP *dataPP = new JetDataPP(fileNamePP_mc,(char*)"nt");	// pp data
 	
   TFile *fSpectra(0);		
@@ -158,15 +162,20 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
       if(doBjets) jtpt = dataPbPb->jtpt;
       
 	
-      if ( dataPbPb->refpt  < 0. ) continue;
+      if ( dataPbPb->refpt  < 0 ) continue;
       if ( dataPbPb->jteta  > etahi || dataPbPb->jteta < etalo ) continue;
+      if ( dataPbPb->refpt < 20. ) continue;
+      if (dataPbPb->jtpt < recoJetPtCut) continue;
+      //if ( dataPbPb->refpt < genJetPtCut) continue;
       //if ( !dataPbPb->gPlus ) continue;
       if (doBjets && fabs(dataPbPb->refparton_flavorForB)!=5) continue;
+      if(dataPbPb->refpt/dataPbPb->pthat > 1.0) continue;
       //if (doBjets&& dataPbPb->discr_ssvHighEff<2) continue;
       //if (!doTrigEffCorr && dataPbPb->isTrig <1) continue;
+      if(dataPbPb->subid != 0) continue;
       //if ( dataPbPb->isTrig <1) continue;
       //if( dataPbPb->bin < cBinLo || dataPbPb->bin >= cBinHi) continue;
-      if( dataPbPb->jtpt/dataPbPb->rawpt>1.5) continue;
+      //if( dataPbPb->jtpt/dataPbPb->rawpt>1.5) continue;
 
       if(doResSmear){
 	double sigSmear = fResPbPb->Eval(dataPbPb->refpt) * sqrt(0.1*0.1 + 2*0.1);
@@ -178,7 +187,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
       else if(doJESshift==2) jtpt*=(1.+sqrt(8.)*0.01);
 
 
-      if(jtpt < recoJetPtCut) continue;
+      //if(jtpt < recoJetPtCut) continue;
 
       //if(!doBjets)if(dataPbPb->refpt < 50 && dataPbPb->jtptA>120) continue;
       //if(doBjets)if(dataPbPb->refpt < 50 && dataPbPb->jtptB>120) continue;
@@ -194,15 +203,15 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 	}
       }
       if (!isMC||jentry2 % 2 == 1) {
-	uhist[cBin]-> hMatrix->Fill(dataPbPb->refpt,jtpt,weight);
+	uhist[cBin]-> hMatrix->Fill(dataPbPb->refpt,jtpt,dataPbPb->weight);
       }	  
-      if (jentry2 % 2 == 0) {
-	uhist[cBin]-> hGen->Fill(dataPbPb->refpt,weight);   
-	uhist[cBin]-> hMeas->Fill(jtpt,weight);  	 
-	//uhist[cBin]-> hMeasJECSys->Fill(dataPbPb->jtpt*(1.+0.02/nbins_cent*(nbins_cent-i)),weight); 
-	// FIXME!!!!!!  i is supposed to be a loop over centrality !!!!
-	uhist[cBin]-> hMeasJECSys->Fill(jtpt*(1.+0.02/nbins_cent*(nbins_cent-0)),weight); 
-      }
+      // if (jentry2 % 1 == 0) {
+	uhist[cBin]-> hGen->Fill(dataPbPb->refpt,dataPbPb->weight);   
+	//uhist[cBin]-> hMeas->Fill(jtpt,dataPbPb->weight);
+	// } 
+    }
+    for(int jj=1; jj<uhist[0]->hGen->GetNbinsX(); jj++){
+      // cout << "bin " << jj << " content: "<< uhist[0]->hGen->GetBinContent(jj) << endl;
     }
 
     //pp will just fill the last index of the centrality array
@@ -213,14 +222,20 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
     // fill pp MC
     for (Long64_t jentry2=0; jentry2<dataPP->tJet->GetEntries();jentry2++) {
       dataPP->tJet->GetEntry(jentry2);
-      
-      if ( dataPP->refpt<0) continue;
+
+      //uhist[nbins_cent]-> hMatrix->Fill(dataPP->refpt,dataPP->jtpt,dataPP->weight);
+
+      if(dataPP->refpt>0 && dataPP->jteta<etahi+0.465 && dataPP->jteta>etalo+0.465 && ((doBjets && fabs(dataPP->refparton_flavorForB)!=5) || !doBjets)){
+	
+      }
+	 if ( dataPP->refpt<genJetPtCut) continue;
+	 //if ( dataPP->rawpt<20) continue;
       if ( dataPP->jteta  > etahi+0.465 || dataPP->jteta < etalo+0.465 ) continue;
       //if ( !dataPP->gPlus ) continue;
       ///if ( dataPP->refpt<0) dataPP->refpt=0;
       if ( doBjets && fabs(dataPP->refparton_flavorForB)!=5) continue;
       //if ( doBjets && dataPP->discr_ssvHighEff<2) continue;
-      if( dataPP->jtpt/dataPP->rawpt>1.5) continue;  // protect against bad JEC fit
+      //if( dataPP->jtpt/dataPP->rawpt>1.5) continue;  // protect against bad JEC fit
 
       if(doResSmear){
 	double sigSmear = fResPP->Eval(dataPP->refpt) * sqrt(0.1*0.1 + 2*0.1);
@@ -245,48 +260,14 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
       }
       
       if (!isMC||jentry2 % 2 == 1) {
-	uhist[nbins_cent]-> hMatrix->Fill(dataPP->refpt,dataPP->jtpt,dataPP->weight);
+       	uhist[nbins_cent]-> hMatrix->Fill(dataPP->refpt,dataPP->jtpt,dataPP->weight);
       }	  
-      if (jentry2 % 2 == 0) {
+      //if (jentry2 % 2 == 0) {
 	uhist[nbins_cent]-> hGen->Fill(dataPP->refpt,dataPP->weight);   
 	uhist[nbins_cent]-> hMeas->Fill(dataPP->jtpt,dataPP->weight); 
-      }           
+	// }        
     }
   }
-  /*
-  for (int i=0;i<=nbins_cent;i++){
-    for (int x=1;x<=uhist[i]->hMatrix->GetNbinsX();x++) {
-	float binContent = uhist[i]->hGen->GetBinContent(x);
-	float binError = uhist[i]->hGen->GetBinError(x);
-	float binWidth =  uhist[i]->hGen->GetXaxis()->GetBinWidth(x);
-	uhist[i]->hGen->SetBinContent(x,binContent/binWidth);
-	uhist[i]->hGen->SetBinError(x,binError/binWidth);
-    }
-  }
-
-<<<<<<< HEAD
-  for (int i=0;i<=nbins_cent;i++){
-    for (int x=1;x<=uhist[i]->hMatrix->GetNbinsX();x++) {
-	float binContent = uhist[i]->hMeas->GetBinContent(x);
-	float binError = uhist[i]->hMeas->GetBinError(x);
-	float binWidth =  uhist[i]->hMeas->GetXaxis()->GetBinWidth(x);
-	uhist[i]->hMeas->SetBinContent(x,binContent/binWidth);
-	uhist[i]->hMeas->SetBinError(x,binError/binWidth);
-    }
-  }
-
-  for (int i=0;i<=nbins_cent;i++){
-    for (int x=1;x<=uhist[i]->hMatrix->GetNbinsX();x++) {
-      for (int y=1;y<=uhist[i]->hMatrix->GetNbinsY();y++) {
-	float binContent = uhist[i]->hMatrix->GetBinContent(x,y);
-	float binError = uhist[i]->hMatrix->GetBinError(x,y);
-	float binWidth2 =  uhist[i]->hMatrix->GetXaxis()->GetBinWidth(x)*uhist[i]->hMatrix->GetYaxis()->GetBinWidth(y);
-	uhist[i]->hMatrix->SetBinContent(x,y,binContent/binWidth2);
-	uhist[i]->hMatrix->SetBinError(x,y,binError/binWidth2);
-      }      
-    }
-  }	
-  */
 
 
   if (isMC==0) {
@@ -298,12 +279,27 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
     TH1F *hMattPbPb = NULL;
     TH1F *hTagEffPbPb = NULL;
 
+    /*TFile *backup = new TFile("histos/pPbdata_ppreco_akPu3PF_jetTrig_etashift_FinalTC_WxieForest4_AddSvtxInfo_NoEvtSelection_NoResCorr_FullMerge.root");
+    TTree *nt = (TTree*)backup->Get("nt");
+    hMattPbPb = new TH1F("hIncJetsData","",nbins_rec,boundaries_rec);
+    hMattPbPb->Sumw2();
+    nt->Draw("jtpt>>hIncJetsData","weight*(abs(jteta)<1 && evtSelection && abs(vz)<15 && run<211300 && rawpt>=22)");
+    // for(int i=1; i<=hMattPbPb->GetNbinsX(); i++){
+    //  hMattPbPb->SetBinError(i,hMattPbPb->GetBinError(i)/hMattPbPb->GetBinWidth(i));
+    //  hMattPbPb->SetBinContent(i,hMattPbPb->GetBinContent(i)/hMattPbPb->GetBinWidth(i));
+   //}
+   hMattPbPb->Scale(1./(0.85*20.7*1.e6));*/
+    
     if(doBjets){
       hMattPbPb = (TH1F*) infMatt->Get("hRawBData");
       hTagEffPbPb = (TH1F*) infMatt->Get("hBEfficiencyMC");
     }
+    
+
     else hMattPbPb = (TH1F*) infMatt->Get("hIncJetsData");
     //divideBinWidth(hMattPbPb);
+    
+
            
     // Need to match the binning carefully, please double check whenever you change the binning
     for (int i=1;i<=hMattPbPb->GetNbinsX();i++)
@@ -314,6 +310,8 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 	if(doBjets){
 	  float tagEff =hTagEffPbPb->GetBinContent(i);
 	  float tagEffErr =     hTagEffPbPb->GetBinError(i);   
+
+	  cout << "tageff, bin " << i << " : "<< tagEff << endl;
 	  
 	  if(tagEff>0){
 	    // careful of the order here!
@@ -322,19 +320,22 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 	  }
 	  else cout<<"pPb TAGEFF = 0"<<endl;	  
 	}
-	cout << "bin content " << i << ": " << binContent << endl;
+
+	cout << "pPb bin content " << i << " "<< binContent/(20.7E9*2110E-3*6.9) << endl;
 
 	float binCenter = hMattPbPb->GetBinCenter(i);  
-	if(binCenter - hMattPbPb->GetBinWidth(i)/2.  < recoJetPtCut) continue;
+	//if(binCenter - hMattPbPb->GetBinWidth(i)/2.  < 22.) continue;
 	
-	int ibin=0;
+	int ibin=uhist[0]->hMeas->FindBin(binCenter);
 	
-	for(ibin=1;ibin<=uhist[0]->hMeas->GetNbinsX();ibin++){
+	/*for(ibin=1;ibin<=uhist[0]->hMeas->GetNbinsX();ibin++){
+	 
 	  float testLowEdge = uhist[0]->hMeas->GetBinLowEdge(ibin);
 	  float testBinWidth = uhist[0]->hMeas->GetBinWidth(ibin);
 	  if(binCenter>testLowEdge && binCenter < testLowEdge+testBinWidth) break;
-	}
-	
+	  	}*/
+	uhist[0]->hMeas->SetBinContent(ibin,0); //reset to make sure nothing from MC is inside
+	uhist[0]->hMeas->SetBinError(ibin,0);
 	
 	if(doTrigEffCorr){
 	  float trigEff = 0;
@@ -349,13 +350,11 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 	    binError /= trigEff;
 	  }
 	  else cout<<"pPb TRIGEFF = 0"<<endl;	  
-	}
-
-
-     
-	uhist[0]->hMeas->SetBinContent(ibin,binContent);  
-	uhist[0]->hMeas->SetBinError(ibin,binError);  
-
+	}   
+	
+	//  cout <<"get bins " << testLowEdge<<" content =" <<binContent<<endl ;
+        uhist[0]->hMeas->SetBinContent(ibin,binContent);  
+        uhist[0]->hMeas->SetBinError(ibin,binError);  
       }
 
     // pp file:
@@ -370,7 +369,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
     //else hMattPP = (TH1F*) infMattPP->Get("hpp");
     else hMattPP = (TH1F*) infMattPP->Get("hIncJetsMC");
     //divideBinWidth(hMattPP);	   
-    for (int i=1;i<=hMattPP->GetNbinsX();i++)
+     for (int i=1;i<=hMattPP->GetNbinsX();i++)
       {
       	float binContent = hMattPP->GetBinContent(i);  
 	float binError = hMattPP->GetBinError(i);  
@@ -396,10 +395,11 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 	  float testBinWidth = uhist[nbins_cent]->hMeas->GetBinWidth(ibin);
 	  if(binCenter>testLowEdge && binCenter < testLowEdge+testBinWidth) break;
 	}
-	uhist[nbins_cent]->hMeas->SetBinContent(ibin,binContent);  
-	uhist[nbins_cent]->hMeas->SetBinError(ibin,binError);  
+	//	uhist[nbins_cent]->hMeas->SetBinContent(ibin,binContent);  
+	//	uhist[nbins_cent]->hMeas->SetBinError(ibin,binError);  
 
-    
+	cout << "pp bin content " << i << " "<< uhist[nbins_cent]->hGen->GetBinContent(ibin)/70. << endl;
+	cout << "pp bin content from file " << i << " "<< binContent/70. << endl;
 	/*
 	cout<<" i "<<i<<endl;
 	int newBin = i+uhist[nbins_cent]->hMeas->FindBin(61)-1;
@@ -409,8 +409,8 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 	cout<<"uhist[nbins_cent]->hMeas->GetBinCenter(newBin) "<<uhist[nbins_cent]->hMeas->GetBinCenter(newBin)<<endl;
 	*/
       }
-
   }
+
 
 
     TLatex *tpp =  new TLatex(0.5,0.9,"pp");
@@ -435,10 +435,18 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 	
   TCanvas * cMatrix = new TCanvas("cMatrix","Matrix",1200,600);
   cMatrix->Divide(2,1);
-
+  TH2F * hResponse[nbins_cent+1];
   for (int i=0;i<=nbins_cent;i++){
     cMatrix->cd(i+1);
-    if (!useMatrixFromFile) {
+    if(doParameterizedMatrix){
+      uhist[i]->hMatrix = (TH2F*)generateSmearingMatrix(i,uhist[i]->hGen,uhist[i]->hMeas,genJetPtCut,recoJetPtCut,etalo,1)->Clone(Form("hMatrix_%d",i));
+      //cMatrix->cd(i); 
+      uhist[i]->hMatrix->SetMaximum(1);
+      uhist[i]->hMatrix->SetMinimum(1E-7);
+      uhist[i]->hMatrix->Draw("colz");
+    }
+    else if (!useMatrixFromFile) {
+     
       TF1 *f = new TF1("f","[0]*pow(x+[2],[1])");
       f->SetParameters(1e10,-8.8,40);
       for (int y=1;y<=uhist[i]->hMatrix->GetNbinsY();y++) {
@@ -450,7 +458,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 	  }
 	  sum+=uhist[i]->hMatrix->GetBinContent(x,y);
 	}
-				
+
 	for (int x=1;x<=uhist[i]->hMatrix->GetNbinsX();x++) {	   
 	  double ratio = 1;
 	  uhist[i]->hMatrix->SetBinContent(x,y,uhist[i]->hMatrix->GetBinContent(x,y)*ratio);
@@ -459,35 +467,29 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
       }
     }
     uhist[i]->hResponse = (TH2F*)uhist[i]->hMatrix->Clone(Form("hResponse_cent%d",i));
+    TH1F *hProj = (TH1F*)uhist[i]->hResponse->ProjectionY(Form("hProj_cent%d",i));
+
 
     for (int y=1;y<=uhist[i]->hResponse->GetNbinsY();y++) {
       double sum=0;
       for (int x=1;x<=uhist[i]->hResponse->GetNbinsX();x++) {
-	if (uhist[i]->hResponse->GetBinContent(x,y)<=0*uhist[i]->hResponse->GetBinError(x,y)) {
+	if (uhist[i]->hResponse->GetBinContent(x,y)<=1*uhist[i]->hResponse->GetBinError(x,y)) {
 	  uhist[i]->hResponse->SetBinContent(x,y,0);
 	  uhist[i]->hResponse->SetBinError(x,y,0);
 	}
 	sum+=uhist[i]->hResponse->GetBinContent(x,y);
       }
-			
-      for (int x=1;x<=uhist[i]->hResponse->GetNbinsX();x++) {  	
-	if (sum==0) continue;
-	double ratio = uhist[i]->hMeas->GetBinContent(y)/sum;
-	if (uhist[i]->hMeas->GetBinContent(y)==0) ratio = 1e-100/sum;
-      }
-    }
-		
-    TH1F *hProj = (TH1F*)uhist[i]->hResponse->ProjectionY(Form("hProj_cent%d",i));
-    
-    for (int y=1;y<=uhist[i]->hResponse->GetNbinsY();y++) {
-      for (int x=1;x<=uhist[i]->hResponse->GetNbinsX();x++) {  	
-	double sum=hProj->GetBinContent(y);
 
+      for (int x=1;x<=uhist[i]->hResponse->GetNbinsX();x++) {  	
 	if (sum==0) continue;
-	double ratio = uhist[i]->hMeas->GetBinContent(y)/sum;
-	if (uhist[i]->hMeas->GetBinContent(y)==0) ratio = 1e-100/sum;
-        uhist[i]->hResponse->SetBinContent(x,y,uhist[i]->hResponse->GetBinContent(x,y)*ratio);
-	uhist[i]->hResponse->SetBinError(x,y,uhist[i]->hResponse->GetBinError(x,y)*ratio);
+	double ratio =1.;
+	//	if (uhist[i]->hMeas->GetBinContent(y)==0) ratio = 1e-100/sum;
+	//         else ratio = uhist[i]->hMeas->GetBinContent(y)/sum;
+	ratio = 1./sum ;
+	if (hProj->GetBinContent(y)==0) ratio = 1e-100/sum;
+	else ratio = hProj->GetBinContent(y)/sum;
+	uhist[i]->hResponse->SetBinContent(x,y,uhist[i]->hResponse->GetBinContent(x,y)*ratio);
+        uhist[i]->hResponse->SetBinError(x,y,uhist[i]->hResponse->GetBinError(x,y)*ratio);
       }
     }
 
@@ -501,7 +503,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 	}
 	sum+=uhist[i]->hResponseNorm->GetBinContent(x,y);
       }
-			
+
       for (int y=1;y<=uhist[i]->hResponseNorm->GetNbinsY();y++) {  	
 	if (sum==0) continue;
 	double ratio = 1./sum;
@@ -509,13 +511,33 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 	uhist[i]->hResponseNorm->SetBinError(x,y,uhist[i]->hResponseNorm->GetBinError(x,y)*ratio);
       }
     }
-		
-    uhist[i]->hResponse->Draw("colz");
-    if(i==0) tpbpb->Draw();
-    else tpp->Draw();
+
     if (!useMatrixFromFile) uhist[i]->hMatrixFit = uhist[i]->hMatrix;
     uhist[i]->hMatrixFit->SetName(Form("hMatrixFit_cent%d",i));
-  }
+  } 
+  /*
+    TCanvas * cMatrix = new TCanvas("cMatrix","Matrix",800,400);
+    cMatrix->Divide(2,1);
+    //  cMatrix->cd(1);
+    */    for (int i=0;i<=nbins_cent;i++){
+    cMatrix->cd(i+1); 
+    //     cMatrix->cd(i+1);		
+    uhist[i]->hResponse->SetTitleOffset(1.4, "Y");
+    uhist[i]->hResponse->SetTitleOffset(1.2, "X");
+    //  if(isMC)uhist[i]->hResponse->SetMinimum(1.e-8);
+    //  else
+    uhist[i]->hResponse->SetMinimum(1.e-10);
+    //uhist[i]->hResponse->DrawCopy("colz");
+    /*    uhist[i]->hMatrix->SetTitleOffset(1.4, "Y");
+	  uhist[i]->hMatrix->SetTitleOffset(1.2, "X");
+	  uhist[i]->hMatrix->Draw("colz");
+		
+	  cMatrix->cd(i+1)->Modified();
+	  cMatrix->cd(i+1);
+    */  }
+
+  // cMatrix->SetSelected(cMatrix);
+  cMatrix->Update();
 
   pbpb_Unfo->cd();
 	
@@ -539,12 +561,19 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
   for (int i=0;i<=nbins_cent;i++) {
     cPbPb->cd(i+1)->SetLogy();   
     // Do Bin-by-bin
-    TH1F *hBinByBinCorRaw = (TH1F*)uhist[i]->hResponse->ProjectionY(); 
-    TH1F *hMCGen           = (TH1F*)uhist[i]->hResponse->ProjectionX(); // gen
+    TH1F *hBinByBinCorRaw = (TH1F*)uhist[i]->hResponse->ProjectionY(); hBinByBinCorRaw->Sumw2();
+    TH1F *hMCGen           = (TH1F*)uhist[i]->hResponse->ProjectionX(); hMCGen->Sumw2(); // gen 
+
+    for(int jj=1; jj<=hBinByBinCorRaw->GetNbinsX(); jj++){
+      //cout << "Y, bin " << jj << " " << hBinByBinCorRaw->GetBinContent(jj) << endl;
+    }
+     for(int jj=1; jj<=hMCGen->GetNbinsX(); jj++){
+       //cout << "X, bin " << jj << " " << hMCGen->GetBinContent(jj) << endl;
+     }
     hBinByBinCorRaw->Divide(hMCGen);
     TF1 *f = new TF1("f","[0]+[1]*x");
 
-    hBinByBinCorRaw->Fit("f","LL ","",40,600);
+    hBinByBinCorRaw->Fit("f","LL ","",recoJetPtCut,850);
     TH1F* hBinByBinCor = (TH1F*)hBinByBinCorRaw->Clone();//functionHist(f,hBinByBinCorRaw,Form("hBinByBinCor_cent%d",i));
     uhist[i]->hRecoBinByBin = (TH1F*) uhist[i]->hMeas->Clone(Form("hRecoBinByBin_cent%d",i));
     uhist[i]->hRecoBinByBin->Divide(hBinByBinCor);
@@ -552,16 +581,16 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
     // Do unfolding
     //if (isMC) uhist[i]->hMeas = (TH1F*)uhist[i]->hMatrix->ProjectionY()->Clone(Form("hMeas_cent%d",i));
     TH1F *hPrior;//=(TH1F*) functionHist(fPow,uhist[i]->hMeas,Form("hPrior_cent%d",i));
-    //hPrior = (TH1F*)uhist[i]->hGen->Clone("hPrior");
-    if(priorGenOrBin) hPrior=(TH1F*)uhist[i]->hRecoBinByBin->Clone(Form("hPrior_cent%d",i));
-    else hPrior=(TH1F*)hMCGen->Clone(Form("hPrior_cent%d",i));
+    hPrior = (TH1F*)uhist[i]->hGen->Clone(Form("hPrior_cent%d",i));
+    //if(priorGenOrBin) hPrior=(TH1F*)uhist[i]->hRecoBinByBin->Clone(Form("hPrior_cent%d",i));
+    //else hPrior=(TH1F*)uhist[i]->hGen->Clone(Form("hPrior_cent%d",i));
     //hPrior = (TH1F*)uhist[i]->hMeas->Clone(Form("hPrior_cent%d",i));
 
     //TF1 *fSkew = new TF1("fShift","0.2/100.*x+0.7",50,600);
     if(doSkew){
       TF1 *fSkew = NULL;
-      if(doSkew==1)fSkew = new TF1("fShift","0.5/100.*x+0.25",40,600);
-      else fSkew = new TF1("fShift","-0.5/100.*x+1.75",40,600);
+      if(doSkew==1)fSkew = new TF1("fShift","0.5/100.*x+0.25",40,400);
+      else fSkew = new TF1("fShift","-0.5/100.*x+1.75",40,400);
       for(int ib=0;ib<hPrior->GetNbinsX();ib++){
 	hPrior->SetBinContent(ib+1,hPrior->GetBinContent(ib+1)*fSkew->Eval(hPrior->GetBinCenter(ib+1)));
       }
@@ -570,13 +599,17 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
 
     //hPrior=(TH1F*)uhist[i]->hRecoBinByBin->Clone("hPrior");
     removeZero(hPrior);
+    for(int jj=1; jj<=hPrior->GetNbinsX(); jj++){
+      //cout << "hprior bin : " << jj << " bin center: " << hPrior->GetBinCenter(jj) << " content: " << hPrior->GetBinContent(jj) << endl;
+    }
+
     // what's in yen-jie code
     //prior myPrior(uhist[i]->hMatrixFit,uhist[i]->hMeas,0);
-    //prior myPrior(uhist[i]->hMatrixFit,hPrior,0);
-    //myPrior.unfold(uhist[i]->hMeas,nBayesianIter);
+    prior myPrior(uhist[i]->hMatrixFit,hPrior,0);
+    myPrior.unfold(uhist[i]->hMeas,nBayesianIter);
 
 
-    TH1F *hReweighted = (TH1F*)(TH1F*)uhist[i]->hResponse->ProjectionY(Form("hReweighted_cent%d",i));
+    // TH1F *hReweighted = (TH1F*)(TH1F*)uhist[i]->hResponse->ProjectionY(Form("hReweighted_cent%d",i));
 		
     bayesianUnfold myUnfoldingJECSys(uhist[i]->hMatrixFit,hPrior,0);
     myUnfoldingJECSys.unfold(uhist[i]->hMeasJECSys,nBayesianIter);
@@ -590,7 +623,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
     delete hMCGen;
 
     // Iteration Systematics
-    for (int j=2;j<=7;j++)
+    for (int j=2;j<=nBayesianIter;j++)
       {
 
 	bayesianUnfold myUnfoldingSys(uhist[i]->hMatrixFit,hPrior,0);
@@ -767,7 +800,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
   legBayesianIterPP->SetTextFont(42);
   //legBayesianIterPP->AddEntry("","pp","");
          
-  for (int j=2;j<7;j++) {
+  for (int j=2;j<nBayesianIter;j++) {
     hRecoIterSysPP[j] = rebin(uhist[nbins_cent]->hRecoIterSys[j],Form("hRecoIterSysPP_IterSys%d",j));
     hRecoIterSysPP[j]->SetLineColor(colorCode[j-2]);
     hRecoIterSysPP[j]->SetMarkerColor(colorCode[j-2]);
@@ -801,7 +834,7 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
   TLegend *legBayesianIterPbPb = myLegend(0.4,0.7,0.9,0.9);
   legBayesianIterPbPb->SetTextFont(42);
   //legBayesianIterPbPb->AddEntry("","PbPb","");
-  for (int j=2;j<7;j++) {
+  for (int j=2;j<nBayesianIter;j++) {
     hRecoIterSysPbPb[j] = rebin(uhist[0]->hRecoIterSys[j],Form("hRecoIterSysPbPb_IterSys%d",j));
     hRecoIterSysPbPb[j]->SetLineColor(colorCode[j-2]);
     hRecoIterSysPbPb[j]->SetMarkerColor(colorCode[j-2]);
@@ -824,6 +857,40 @@ void Unfold2(int algo= 3,bool useSpectraFromFile=0, bool useMatrixFromFile=0, in
   line->Draw();
   tpbpb->Draw();
   //drawEnvelope(systematics.hSysIter[0],(char*)"hist same");
+
+  if(isMC){
+    TCanvas *cRatios = new TCanvas("cRatios","",1200,600);
+    cRatios->Divide(2,1);
+    
+    TH1D *hRatioGen[2], *hRatioBbyB[2], *hRatioReco[2], *hRatioMeas[2];
+    
+    for(int i=0; i<2; i++){
+      cRatios->cd(i+1);
+      
+      hRatioGen[i] = (TH1D*)uhist[i]->hGen->Clone(Form("hRatioGen_%d",i));
+      hRatioBbyB[i] = (TH1D*)uhist[i]->hRecoBinByBin->Clone(Form("hRatioBbyB_%d",i));
+      hRatioReco[i] = (TH1D*)uhist[i]->hReco->Clone(Form("hRatioReco_%d",i));
+      hRatioMeas[i] = (TH1D*)uhist[i]->hMeas->Clone(Form("hRatioMeas_%d",i));
+      hRatioMeas[i]->Divide(uhist[i]->hMeas,uhist[i]->hGen,1,1);
+      hRatioBbyB[i]->Divide(uhist[i]->hRecoBinByBin,uhist[i]->hGen,1,1);
+      hRatioReco[i]->Divide(uhist[i]->hReco,uhist[i]->hGen,1,1);
+      
+      hRatioBbyB[i]->SetMaximum(1.3);
+      hRatioBbyB[i]->SetMinimum(0.6);
+      hRatioBbyB[i]->Draw(); 
+      hRatioMeas[i]->Draw("same");
+      hRatioReco[i]->Draw("same");
+      
+      TLegend *legr = new TLegend(0.45,0.65,0.85,0.90);
+      legr->SetBorderSize(0);
+      legr->SetFillStyle(0);
+      legr->SetTextFont(42);
+      legr->AddEntry(hRatioReco[i],"Bayesian unfolded/Gen Truth","pl");
+      legr->AddEntry(hRatioBbyB[i],"Bin-by-bin unfolded/Gen Truth","pl");
+      legr->AddEntry(hRatioMeas[i],"Measured/Gen Truth","pl");
+      legr->Draw();
+    }
+  }
 }
 
 
