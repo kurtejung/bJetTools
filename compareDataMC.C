@@ -44,7 +44,7 @@ void scaleHistos(TH1F *hdata, TH1F *hArray[3]){
 }
 
 
-void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1) {
+void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=0) {
 
   gStyle->SetOptStat(0);
   gStyle->SetOptTitle(0);
@@ -65,11 +65,19 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
     fMC[2] = new TFile("./histos/PbPbQCDMC_pt30by3_ipHICalibCentWeight.root");
     fdata = new TFile("./histos/PbPbdata_pt30by3_jpHICalibRepass_withDup.root");
   }
+  /*else{
+    fMC[0] = new TFile("./histos/pPbMC_ppReco_akPu3PF_QCDjetTrig_etashift_noTrgSelection_MCWeightFinalWithSmoothedVzCentWeight_BGenJets1.root");
+    fMC[1] = new TFile("./histos/pPbMC_ppReco_akPu3PF_CjetTrig_etashift_noTrgSelection_MCWeightFinalWithSmoothedVzCentWeight_CGenJets_1.root");
+    fMC[2] = new TFile("./histos/pPbMC_ppReco_akPu3PF_QCDjetTrig_etashift_noTrgSelection_MCWeightFinalWithSmoothedVzCentWeight_VzCut_FixWeight_8.root");
+    fdata = new TFile("./histos/pPbdata_ppreco_akPu3PF_jetTrig_etashift_FinalTC_FullPUForest_JetCleaned_NoEvtSelection_FullMerged_EtaResCorr.root");
+    }*/
+
+  ///histos/pPbMC_ppReco_akPu3PF_QCDjetTrig_etashift_noTrgSelection_v15JECcheck_MCWeightFinalWithSmoothedVzCentWeight_8.root
   else{
-    fMC[0] = new TFile("./histos/ppMC_ppReco_ak3PF_BjetTrig_noIPupperCut_9-15.root");
-    fMC[1] = new TFile("./histos/ppMC_ppReco_ak3PF_CjetTrig_noIPupperCut_9-15.root");
-    fMC[2] = new TFile("./histos/ppMC_ppReco_ak3PF_QCDjetTrig_noIPupperCut_9-15.root");
-    fdata = new TFile("./histos/ppdata_ppReco_ak3PF_jetTrig_noIPupperCut_9-15.root");
+    fMC[0] = new TFile("histos/pPbMC_ppReco_akPu3PF_QCDjetTrig_officialMC_etashift_noTrgSelection_MCWeightFinal_WithCentVzWeight_3606.root");
+    fMC[1] = new TFile("histos/pPbMC_ppReco_akPu3PF_QCDjetTrig_officialMC_etashift_noTrgSelection_MCWeightFinal_WithCentVzWeight_3606.root");
+    fMC[2] = new TFile("histos/pPbMC_ppReco_akPu3PF_QCDjetTrig_officialMC_etashift_noTrgSelection_MCWeightFinal_WithCentVzWeight_3606.root");
+    fdata = new TFile("./histos/pPbdata_ppreco_akPu3PF_jetTrig_etashift_FinalTC_NoResCorr_FullReweight_v17Corr_Merged.root");
   }
   // declare histos
   TH1F *hjtpt, *hrawpt, *hjteta, *hjtphi, *hnsvtx, *hsvtxntrk, *hsvtxdl, *hsvtxdls, *hsvtxm, *hsvtxmSV3, *hsvtxpt, *hsvtxptSV3, *hnIPtrk, *hnselIPtrk, *hdiscr_csvSimple, *hdiscr_prob, *hdiscr_ssvHighEff, *hdiscr_ssvHighPur, *hmuptrel, *hmuptrelSV2, *hmuptrelSV3, *hipPt, *hipProb0, *hipProb1, *hip2d, *hip2dSig, *hip3d, *hip3dSig, *hip2d1, *hip2dSig, *hip3d1, *hip3dSig1, *hip2d2, *hip2dSig2, *hip3d2, *hip3dSig2, *hip2d3, *hip2dSig3, *hip3d3, *hip3dSig3, *hipDist2Jet, *hipDist2JetSig, *hipClosest2Jet;
@@ -79,28 +87,62 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   string suffix[4]={"B","C","L","U"};
   
   string name="hjtpt";
-  hjtpt = (TH1F*) fdata->Get(name.c_str());
-  for(int i=0;i<3;i++) hjtptMC[i] = (TH1F*) fMC[i]->Get((name+suffix[i]).c_str());
+  //hjtpt = (TH1F*) fdata->Get(name.c_str());
+  //for(int i=0;i<3;i++) hjtptMC[i] = (TH1F*) fMC[i]->Get((name+suffix[i]).c_str());
+  TTree *ntd = (TTree*)fdata->Get("nt");
+  TTree *ntmc0 = (TTree*)fMC[0]->Get("nt");
+  TTree *ntmc1 =  (TTree*)fMC[1]->Get("nt");
+  TTree *ntmc2 =  (TTree*)fMC[2]->Get("nt");
+  hjtpt = new TH1F("hjtpt","",80,50,400);
+  hjtptMC[0] = new TH1F("hjtptB","",80,50,400);
+  hjtptMC[1] = new TH1F("hjtptC","",80,50,400);
+  hjtptMC[2] = new TH1F("hjtptL","",80,50,400);
 
+  ntd->Draw("jtpt>>hjtpt","weight*(rawpt>25 && evtSelection && abs(vz)<15 && run<211300)");
+  ntmc0->Draw("jtpt>>hjtptB","weight*(rawpt>25 && refpt>0 && abs(refparton_flavorForB)==5)");
+  ntmc0->Draw("jtpt>>hjtptC","weight*(rawpt>25 && refpt>0 && abs(refparton_flavorForB)==4)");
+  ntmc0->Draw("jtpt>>hjtptL","weight*(rawpt>25 && refpt>0 && abs(refparton_flavorForB)!=5 && abs(refparton_flavorForB)!=4)");
+  
   string name="hrawpt";
   hrawpt = (TH1F*) fdata->Get(name.c_str());
   for(int i=0;i<3;i++) hrawptMC[i] = (TH1F*) fMC[i]->Get((name+suffix[i]).c_str());
 
-  string name="hjteta";
-  hjteta = (TH1F*) fdata->Get(name.c_str());
-  for(int i=0;i<3;i++) hjtetaMC[i] = (TH1F*) fMC[i]->Get((name+suffix[i]).c_str());
+  //string name="hjteta";
+  //hjteta = (TH1F*) fdata->Get(name.c_str());
+  //for(int i=0;i<3;i++) hjtetaMC[i] = (TH1F*) fMC[i]->Get((name+suffix[i]).c_str());
+  cout << "redrawing eta because I forgot to apply the shift!" << endl;
+  hjteta = new TH1F("hjteta","",40,-2,2);
+  hjtetaMC[0] = new TH1F("hjtetaB","",40,-2,2);
+  hjtetaMC[1] = new TH1F("hjtetaC","",40,-2,2);
+  hjtetaMC[2] = new TH1F("hjtetaL","",40,-2,2);
 
+  ntd->Draw("jteta-0.465>>hjteta","weight*(jtpt>80 && evtSelection && abs(vz)<15 && rawpt>20 && run<211300)");
+  ntmc0->Draw("jteta-0.465>>hjtetaB","weight*(jtpt>80 && rawpt>25 && abs(refparton_flavorForB)==5)");
+  ntmc0->Draw("jteta-0.465>>hjtetaC","weight*(jtpt>80 && rawpt>25 && abs(refparton_flavorForB)==4)");
+  ntmc0->Draw("jteta-0.465>>hjtetaL","weight*(jtpt>80 && rawpt>25 && abs(refparton_flavorForB)!=5 && abs(refparton_flavorForB)!=4 && abs(refparton_flavorForB)<99)");
+  
   string name="hjtphi";
   hjtphi = (TH1F*) fdata->Get(name.c_str());
   for(int i=0;i<3;i++) hjtphiMC[i] = (TH1F*) fMC[i]->Get((name+suffix[i]).c_str());
 
-  string name="hnsvtx";
+  /*string name="hnsvtx";
   hnsvtx = (TH1F*) fdata->Get(name.c_str());
-  for(int i=0;i<3;i++) hnsvtxMC[i] = (TH1F*) fMC[i]->Get((name+suffix[i]).c_str());
+  for(int i=0;i<3;i++) hnsvtxMC[i] = (TH1F*) fMC[i]->Get((name+suffix[i]).c_str());*/
+  cout << "redrawing nsvtx!" << endl;
+  hnsvtx = new TH1F("hnsvtx","",6,0,5);
+  hnsvtxMC[0] = new TH1F("hnsvtxB","",6,0,5);
+  hnsvtxMC[1] = new TH1F("hnsvtxC","",6,0,5);
+  hnsvtxMC[2] = new TH1F("hnsvtxL","",6,0,5);
+
+  ntd->Draw("nsvtx>>hnsvtx","weight*(jtpt>80 && evtSelection && abs(vz)<15 && rawpt>20 && pVertexFilterCutGplus)");
+  ntmc0->Draw("nsvtx>>hnsvtxB","weight*(jtpt>80 && rawpt>25 && abs(refparton_flavorForB)==5)");
+  ntmc1->Draw("nsvtx>>hnsvtxC","weight*(jtpt>80 && rawpt>25 && abs(refparton_flavorForB)==4)");
+  ntmc2->Draw("nsvtx>>hnsvtxL","weight*(jtpt>80 && rawpt>25 && abs(refparton_flavorForB)!=5 && abs(refparton_flavorForB)!=4 && abs(refparton_flavorForB)<99)");
 
   name="hsvtxntrk";
   hsvtxntrk = (TH1F*) fdata->Get(name.c_str());
   for(int i=0;i<3;i++) hsvtxntrkMC[i] = (TH1F*) fMC[i]->Get((name+suffix[i]).c_str());
+
 
   name="hsvtxdl";
   hsvtxdl = (TH1F*) fdata->Get(name.c_str());
@@ -501,7 +543,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   leg->SetBorderSize(0);
   leg->SetFillStyle(0);
   if(ppPbPb)leg->AddEntry(hjtpt,"PbPb data, 0-100%","p");
-  else leg->AddEntry(hjtpt,"pp data","p");
+  else leg->AddEntry(hjtpt,"pPb data","p");
   leg->AddEntry(hjtptMC[0],"b-jet","f");
   leg->AddEntry(hjtptMC[1],"c-jet","f");
   leg->AddEntry(hjtptMC[2],"udsg-jet","f");
@@ -514,7 +556,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatHisto(hjtpt,title);
   formatCanvas(c0);
   //hjtpt->Rebin(4);
-  hjtpt->GetXaxis()->SetRangeUser(80,200);
+  hjtpt->GetXaxis()->SetRangeUser(50,200);
   hjtpt->Draw();   
   for(int i=2;i>-1;i--){
     //hjtptMC[i]->Rebin(4);
@@ -529,7 +571,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRjtpt);
   hRjtpt->Divide(hjtptMC[2]);
   hRjtpt->Draw();
-  c0->SaveAs("plotsNewpp/jetPt.pdf");
+  c0->SaveAs("officialMCpPbPlots/jetPt.pdf");
 
   char *title = "Jet raw p_{T} (GeV/c)";
   TCanvas *c0bis=new TCanvas("c0bis",title,200,10,600,480);
@@ -546,7 +588,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRrawpt);
   hRrawpt->Divide(hrawptMC[2]);
   hRrawpt->Draw();
-  c0bis->SaveAs("plotsNewpp/jetRawPt.pdf");
+  c0bis->SaveAs("officialMCpPbPlots/jetRawPt.pdf");
 
   char *title = "Jet #eta";
   TCanvas *c0a=new TCanvas("c0a",title,200,10,600,480);
@@ -565,7 +607,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRjteta);
   hRjteta->Divide(hjtetaMC[2]);
   hRjteta->Draw();
-  c0a->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  c0a->SaveAs("officialMCpPbPlots/Jeteta.pdf");
 
   char *title = "Jet #phi";
   TCanvas *c0b=new TCanvas("c0b",title,200,10,600,480);
@@ -584,7 +626,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRjtphi);
   hRjtphi->Divide(hjtphiMC[2]);
   hRjtphi->Draw();
-  if(savePlots)c0b->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c0b->SaveAs("officialMCpPbPlots/jetphi.pdf");
 
   if(plotSV){
   title = "# of secondary vertices";
@@ -602,7 +644,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRnsvtx);
   hRnsvtx->Divide(hnsvtxMC[2]);
   hRnsvtx->Draw();
-  if(savePlots)c1->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c1->SaveAs("officialMCpPbPlots/nsvtx.pdf");
 
   title = "tracks per SV";
   TCanvas *c2=new TCanvas("c2",title,200,10,600,480);
@@ -619,7 +661,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRsvtxntrk);
   hRsvtxntrk->Divide(hsvtxntrkMC[2]);
   hRsvtxntrk->Draw();
-  if(savePlots)c2->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c2->SaveAs("officialMCpPbPlots/tracksPerSV.pdf");
 
   title = "flight distance";
   TCanvas *c3=new TCanvas("c3",title,200,10,600,480);
@@ -636,7 +678,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRsvtxdl);
   hRsvtxdl->Divide(hsvtxdlMC[2]);
   hRsvtxdl->Draw();
-  if(savePlots)c3->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c3->SaveAs("officialMCpPbPlots/flightDist.pdf");
 
   title = "flight distance significance";
   TCanvas *c4=new TCanvas("c4",title,200,10,600,480);
@@ -653,7 +695,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRsvtxdls);
   hRsvtxdls->Divide(hsvtxdlsMC[2]);
   hRsvtxdls->Draw();
-  if(savePlots)c4->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c4->SaveAs("officialMCpPbPlots/flightDistSig.pdf");
 
   title = "SV mass";
   TCanvas *c5=new TCanvas("c5",title,200,10,600,480);
@@ -670,7 +712,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRsvtxm);
   hRsvtxm->Divide(hsvtxmMC[2]);
   hRsvtxm->Draw();
-  if(savePlots)c5->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c5->SaveAs("officialMCpPbPlots/svtxMass.pdf");
 
   title = "3 track SV mass";
   TCanvas *c5b=new TCanvas("c5b",title,200,10,600,480);
@@ -687,7 +729,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRsvtxmSV3);
   hRsvtxmSV3->Divide(hsvtxmSV3MC[2]);
   hRsvtxmSV3->Draw();
-  if(savePlots)c5b->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c5b->SaveAs("officialMCpPbPlots/3trkSvtxMass.pdf");
 
   title = "SV pT";
   TCanvas *c6=new TCanvas("c6",title,200,10,600,480);
@@ -704,7 +746,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRsvtxpt);
   hRsvtxpt->Divide(hsvtxptMC[2]);
   hRsvtxpt->Draw();
-  if(savePlots)c6->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c6->SaveAs("officialMCpPbPlots/svtxPt.pdf");
 
   title = "3 track SV pT";
   TCanvas *c6b=new TCanvas("c6b",title,200,10,600,480);
@@ -721,7 +763,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRsvtxptSV3);
   hRsvtxptSV3->Divide(hsvtxptSV3MC[2]);
   hRsvtxptSV3->Draw();
-  if(savePlots)c6b->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c6b->SaveAs("officialMCpPbPlots/3trkSvtxPt.pdf");
   }
 
   if(plotTracks){
@@ -743,7 +785,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   hRnIPtrk->Divide(hnIPtrkMC[2]);
   hRnIPtrk->GetXaxis()->SetRangeUser(0,60);
   hRnIPtrk->Draw();
-  if(savePlots)c7->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c7->SaveAs("officialMCpPbPlots/nIPtrk.pdf");
 
   title = "# of selected IP tracks";
   TCanvas *c8=new TCanvas("c8",title,200,10,600,480);
@@ -763,7 +805,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   hRnselIPtrk->Divide(hnselIPtrkMC[2]);
   hRnselIPtrk->GetXaxis()->SetRangeUser(0,60);
   hRnselIPtrk->Draw();
-  if(savePlots)c8->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c8->SaveAs("officialMCpPbPlots/nselIPtrk.pdf");
   }
 
   if(plotSV){
@@ -782,7 +824,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRdiscr_csvSimple);
   hRdiscr_csvSimple->Divide(hdiscr_csvSimpleMC[2]);
   hRdiscr_csvSimple->Draw();
-  if(savePlots)c9->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c9->SaveAs("officialMCpPbPlots/csvSimple.pdf");
   }
 
   if(plotTracks){
@@ -801,7 +843,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRdiscr_prob);
   hRdiscr_prob->Divide(hdiscr_probMC[2]);
   hRdiscr_prob->Draw();
-  if(savePlots)c10->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c10->SaveAs("officialMCpPbPlots/jpDiscr.pdf");
   }
 
   if(plotSV){
@@ -820,7 +862,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRdiscr_ssvHighEff);
   hRdiscr_ssvHighEff->Divide(hdiscr_ssvHighEffMC[2]);
   hRdiscr_ssvHighEff->Draw();
-  if(savePlots)c10a->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c10a->SaveAs("officialMCpPbPlots/SSVHE.pdf");
 
   title = "SSVHP";
   TCanvas *c10b=new TCanvas("c10b",title,200,10,600,480);
@@ -837,7 +879,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRdiscr_ssvHighPur);
   hRdiscr_ssvHighPur->Divide(hdiscr_ssvHighPurMC[2]);
   hRdiscr_ssvHighPur->Draw();
-  if(savePlots)c10b->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c10b->SaveAs("officialMCpPbPlots/SSVHP.pdf");
   }
 
   if(plotTracks){
@@ -856,12 +898,14 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRipPt);
   hRipPt->Divide(hipPtMC[2]);
   hRipPt->Draw();
-  if(savePlots)c11->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c11->SaveAs("officialMCpPbPlots/ipPt.pdf");
 
   title = "hipProb0";
   TCanvas *c12=new TCanvas("c12",title,200,10,600,480);
   formatHisto(hipProb0,title);
   formatCanvas(c12);
+  hipProb0->SetMaximum(5e+07);
+  hipProb0->SetMinimum(1e+04);
   hipProb0->Draw();
   for(int i=2;i>-1;i--) hipProb0MC[i]->Draw("hist,e,same");
   hipProb0->Draw("same");
@@ -873,7 +917,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRipProb0);
   hRipProb0->Divide(hipProb0MC[2]);
   hRipProb0->Draw();
-  if(savePlots)c12->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c12->SaveAs("officialMCpPbPlots/ipProb0.pdf");
 
   title = "hipProb1";
   TCanvas *c13=new TCanvas("c13",title,200,10,600,480);
@@ -890,7 +934,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRipProb1);
   hRipProb1->Divide(hipProb1MC[2]);
   hRipProb1->Draw();
-  if(savePlots)c13->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c13->SaveAs("officialMCpPbPlots/ipProb1.pdf");
   /*  // doing it track by track instead
   title = "2D IP";
   TCanvas *c14=new TCanvas("c14",title,200,10,600,480);
@@ -907,7 +951,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip2d);
   hRip2d->Divide(hip2dMC[2]);
   hRip2d->Draw();
-  if(savePlots)c14->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c14->SaveAs("officialMCpPbPlots/%s.pdf");
 
   title = "2D IP Significance";
   TCanvas *c15=new TCanvas("c15",title,200,10,600,480);
@@ -924,7 +968,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip2dSig);
   hRip2dSig->Divide(hip2dSigMC[2]);
   hRip2dSig->Draw();
-  if(savePlots)c15->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c15->SaveAs("officialMCpPbPlots/%s.pdf");
   
   title = "3D IP";
   TCanvas *c16=new TCanvas("c16",title,200,10,600,480);
@@ -941,7 +985,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip3d);
   hRip3d->Divide(hip3dMC[2]);
   hRip3d->Draw();
-  if(savePlots)c16->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c16->SaveAs("officialMCpPbPlots/%s.pdf");
 
   title = "3D IP Significance";
   TCanvas *c17=new TCanvas("c17",title,200,10,600,480);
@@ -958,7 +1002,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip3dSig);
   hRip3dSig->Divide(hip3dSigMC[2]);
   hRip3dSig->Draw();
-  if(savePlots)c17->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c17->SaveAs("officialMCpPbPlots/%s.pdf");
   */
 
   title = "2D IP 1st track";
@@ -976,7 +1020,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip2d1);
   hRip2d1->Divide(hip2d1MC[2]);
   hRip2d1->Draw();
-  if(savePlots)c14a->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c14a->SaveAs("officialMCpPbPlots/ip2d1.pdf");
 
   title = "2D IP Significance 1st track";
   TCanvas *c15a=new TCanvas("c15a",title,200,10,600,480);
@@ -993,7 +1037,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip2dSig1);
   hRip2dSig1->Divide(hip2dSig1MC[2]);
   hRip2dSig1->Draw();
-  if(savePlots)c15a->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c15a->SaveAs("officialMCpPbPlots/ip2dSig1.pdf");
 
   title = "3D1 IP 1st track";
   TCanvas *c16a=new TCanvas("c16a",title,200,10,600,480);
@@ -1010,7 +1054,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip3d1);
   hRip3d1->Divide(hip3d1MC[2]);
   hRip3d1->Draw();
-  if(savePlots)c16a->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c16a->SaveAs("officialMCpPbPlots/ip3d1.pdf");
 
   title = "3D IP Significance 1st track";
   TCanvas *c17a=new TCanvas("c17a",title,200,10,600,480);
@@ -1027,7 +1071,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip3dSig1);
   hRip3dSig1->Divide(hip3dSig1MC[2]);
   hRip3dSig1->Draw();
-  if(savePlots)c17a->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c17a->SaveAs("officialMCpPbPlots/ip3dSig1.pdf");
 
 
 
@@ -1046,7 +1090,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip2d2);
   hRip2d2->Divide(hip2d2MC[2]);
   hRip2d2->Draw();
-  if(savePlots)c14b->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c14b->SaveAs("officialMCpPbPlots/ip2d2.pdf");
 
   title = "2D IP Significance 2nd track";
   TCanvas *c15b=new TCanvas("c15b",title,200,10,600,480);
@@ -1063,7 +1107,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip2dSig2);
   hRip2dSig2->Divide(hip2dSig2MC[2]);
   hRip2dSig2->Draw();
-  if(savePlots)c15b->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c15b->SaveAs("officialMCpPbPlots/ip2dSig2.pdf");
 
   title = "3D IP 2nd track";
   TCanvas *c16b=new TCanvas("c16b",title,200,10,600,480);
@@ -1080,7 +1124,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip3d2);
   hRip3d2->Divide(hip3d2MC[2]);
   hRip3d2->Draw();
-  if(savePlots)c16b->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c16b->SaveAs("officialMCpPbPlots/ip3d2.pdf");
 
   title = "3D IP Significance 2nd track";
   TCanvas *c17b=new TCanvas("c17b",title,200,10,600,480);
@@ -1097,7 +1141,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip3dSig2);
   hRip3dSig2->Divide(hip3dSig2MC[2]);
   hRip3dSig2->Draw();
-  if(savePlots)c17b->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c17b->SaveAs("officialMCpPbPlots/ip3dSig2.pdf");
 
 
 
@@ -1116,7 +1160,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip2d3);
   hRip2d3->Divide(hip2d3MC[2]);
   hRip2d3->Draw();
-  if(savePlots)c14c->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c14c->SaveAs("officialMCpPbPlots/ip2d3.pdf");
 
   title = "2D IP Significance 3rd track";
   TCanvas *c15c=new TCanvas("c15c",title,200,10,600,480);
@@ -1133,7 +1177,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip2dSig3);
   hRip2dSig3->Divide(hip2dSig3MC[2]);
   hRip2dSig3->Draw();
-  if(savePlots)c15c->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c15c->SaveAs("officialMCpPbPlots/ip2dSig3.pdf");
 
   title = "3D IP 3rd track";
   TCanvas *c16c=new TCanvas("c16c",title,200,10,600,480);
@@ -1150,7 +1194,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip3d3);
   hRip3d3->Divide(hip3d3MC[2]);
   hRip3d3->Draw();
-  if(savePlots)c16c->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c16c->SaveAs("officialMCpPbPlots/ip3d3.pdf");
 
   title = "3D IP Significance 3rd track";
   TCanvas *c17c=new TCanvas("c17c",title,200,10,600,480);
@@ -1167,7 +1211,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRip3dSig3);
   hRip3dSig3->Divide(hip3dSig3MC[2]);
   hRip3dSig3->Draw();
-  if(savePlots)c17c->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c17c->SaveAs("officialMCpPbPlots/ip3dSig3.pdf");
 
 
 
@@ -1186,7 +1230,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRipDist2Jet);
   hRipDist2Jet->Divide(hipDist2JetMC[2]);
   hRipDist2Jet->Draw();
-  if(savePlots)c18->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c18->SaveAs("officialMCpPbPlots/ipDist2Jet.pdf");
 
   title = "hipDist2JetSig";
   TCanvas *c19=new TCanvas("c19",title,200,10,600,480);
@@ -1203,7 +1247,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRipDist2JetSig);
   hRipDist2JetSig->Divide(hipDist2JetSigMC[2]);
   hRipDist2JetSig->Draw();
-  if(savePlots)c19->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c19->SaveAs("officialMCpPbPlots/ipDist2JetSig.pdf");
 
   title = "Decay length";
   TCanvas *c20=new TCanvas("c20",title,200,10,600,480);
@@ -1220,7 +1264,7 @@ void compareDataMC(int ppPbPb=0, int plotSV=1, int plotTracks=1, int savePlots=1
   formatRatioHist(hRipClosest2Jet);
   hRipClosest2Jet->Divide(hipClosest2JetMC[2]);
   hRipClosest2Jet->Draw();
-  if(savePlots)c20->SaveAs(Form("plotsNewpp/%s.pdf",title));
+  if(savePlots)c20->SaveAs("officialMCpPbPlots/ipClosest2Jet.pdf");
   }
   /*
   title = "muon pTrel";
