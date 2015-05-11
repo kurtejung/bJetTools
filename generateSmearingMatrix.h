@@ -12,21 +12,29 @@
 
 double _epsilon = 1e-6; // speed up calculations with acceptable loss of precision
 const int nk = 4; // number of kernel parameters (excluding pt, eta)
-//TF1 *parf = new TF1("parf","[0]*TMath::Sqrt(pow([1],2)/pow(x,2) + pow([2],2)/x + pow([3],2))",35,500); //need to make these global to save time
-TF1 *parf = new TF1("parf","[0]/pow(x,[1])",50,300);
+TF1 *parfMC = new TF1("parfMC","[0]+[1]/x+[2]/x/x",10,500); //need to make these global to save time
+TF1 *parf = new TF1("parf","[0]/pow(x,[1])",10,500);
 TF1 *_kernel = 0;
 
 double ptresolution(double pt, double eta){
 
   //method taken from SMP-13-002
-  // if(abs(eta)>1) parf->SetParameters(1.6205,74.597,2.170,0.3979); //calculated from pPb MC for 1<abs(eta CM)<2
-  //else if(abs(eta)>0.5) parf->SetParameters(1.6163,22.67,3.33,0.395); //calculated from pPb MC for 0.5<abs(eta CM)<1
-  //else parf->SetParameters(1.6163,13.6607,2.844,0.3953); //calculated from pPb MC for abs(eta CM) < 0.5
+  //if(abs(eta)>1) parfMC->SetParameters(1.6205,74.597,2.170,0.3979); //calculated from pPb MC for 1<abs(eta CM)<2
+  //else if(abs(eta)>0.5) parfMC->SetParameters(1.6163,22.67,3.33,0.395); //calculated from pPb MC for 0.5<abs(eta CM)<1
+  //else parfMC->SetParameters(1.6163,13.6607,2.844,0.3953); //calculated from pPb MC for abs(eta CM) < 0.5
+  parfMC->SetParameters(-1.09506e+02,6.632e+00,4.90366e-02);
 
-  parf->SetParameters(1.052,0.5261);
+  bool doBjets=1;
+  if(doBjets){
+    if(abs(eta)<2 && abs(eta)>1){parfMC->SetParameters(7.03878e-02,1.56737e+00,7.41007e+01);}
+    if(abs(eta)<1 && abs(eta)>0.5){parfMC->SetParameters(6.98873e-02,1.65336e+00,4.18505e+01);}
+    if(abs(eta)<0.5){ parfMC->SetParameters(6.18502e-02,2.95868e+00,-2.21675e+01);}
+  }
+  parf->SetParameters(1.052,0.5261); //relative resolution between data and MC
+  double ret = (1+parf->Eval(pt))*parfMC->Eval(pt);
 
   if(pt<30) return 1.;
-  else return parf->Eval(pt);
+  else return ret;
 
 }
 
@@ -60,7 +68,7 @@ Double_t smearedAnsatz(Double_t *x, Double_t *p) {
   double res = 0.;
   res = ptresolution(pt, eta+1e-3) * pt;
 
-  const double sigma = TMath::Min(res, 0.30);
+  const double sigma = TMath::Min(res, 0.50);
   double ptmin = pt / (1. + 4.*sigma); // xmin*(1+4*sigma)=x
   ptmin = TMath::Max(1.,ptmin); // safety check
   double ptmax = pt / (1. - 2.*sigma); // xmax*(1-2*sigma)=x
@@ -81,16 +89,17 @@ TH2F *generateSmearingMatrix(int iter, TH1F *hgen, TH1F *hpt, double genPtmin=20
   // initial fit of the NLO curve to a histogram
   TF1 *fnlo = new TF1(Form("fus%d",iter),
                       "[0]*exp([1]/x)*pow(x,[2])"
-                      "*pow(1-x*cosh([4])/3500.,[3])", 10., 1000.);
+                      "*pow(1-x*cosh([4])/3500.,[3])", 20., 400.);
   fnlo->SetParameters(2e6,-35.,-5.2,2.,etalo);
   fnlo->FixParameter(4,etalo);
 
-  hgen->Fit(fnlo,"QRN");
+  double maxpt = 3450./cosh(etalo);
+
+  hgen->Fit(fnlo,"QRN","",genPtmin,maxpt);
   //  cout << "fnlo integral: "<< fnlo->Integral(20,500) << endl;
   //cout << "fnlo eval 50 & 100: "<< fnlo->Eval(50) << " " << fnlo->Eval(100) << endl;
 
   // Create smeared theory curve
-  double maxpt = 3450./cosh(etalo);
   TF1 *fnlos = new TF1(Form("fs%d",iter),smearedAnsatz,genPtmin,maxpt,nk+3);
   
   fnlos->SetParameters(etalo, fnlo->GetParameter(0), fnlo->GetParameter(1),
@@ -143,14 +152,14 @@ TH2F *generateSmearingMatrix(int iter, TH1F *hgen, TH1F *hpt, double genPtmin=20
   for (int i = 1; i != hreco->GetNbinsX()+1; ++i) {
     int j = hpt->FindBin(hreco->GetBinCenter(i));
     double dpt = hpt->GetBinWidth(j);
-    hreco->SetBinContent(i, hpt->GetBinContent(j)/dpt);
-    hreco->SetBinError(i, hpt->GetBinError(j)/dpt);
+    //hreco->SetBinContent(i, hpt->GetBinContent(j)/dpt);
+    //hreco->SetBinError(i, hpt->GetBinError(j)/dpt);
   }
   for (int i = 1; i != hgen->GetNbinsX()+1; ++i) {
     int j = hpt->FindBin(hgen->GetBinCenter(i));
     double dpt = hpt->GetBinWidth(j);
-    hgen->SetBinContent(i, hgen->GetBinContent(j)/dpt);
-    hgen->SetBinError(i, hgen->GetBinError(j)/dpt);
+    //hgen->SetBinContent(i, hgen->GetBinContent(j)/dpt);
+    //hgen->SetBinError(i, hgen->GetBinError(j)/dpt);
   }
 
   TH2F *mt = new TH2F(Form("mt_jet_%d",iter),"mt;p_{T,reco};p_{T,gen}",
