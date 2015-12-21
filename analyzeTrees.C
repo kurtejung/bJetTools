@@ -16,24 +16,24 @@
 #include "TChain.h"
 #include "TMath.h"
 
-#include "DataFormats/HLTReco/interface/TriggerObject.h"
+//#include "DataFormats/HLTReco/interface/TriggerObject.h"
 //These includes cause some complications in CMSSW_5_3_8_HI_patchX.  Commented out for pp.
 //If you want to recalculate the JECs on the fly again, just uncomment everything in the updateJEC blocks
 
-#include "CondFormats/JetMETObjects/interface/FactorizedJetCorrector.h"
-#include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
-#include "CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h" 
+//#include "CondFormats/JetMETObjects/interface/FactorizedJetCorrector.h"
+//#include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
+//#include "CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h" 
 
 using namespace std;
 
 // ******* GLOBAL DECLARATIONS **********
-const int QCDpthatBins = 2056; //2056
-const int HFpthatBins = 3000;
+const int QCDpthatBins = 5000; //2056
+const int HFpthatBins = 6;
 const int dataFiles = 4478;
 //***************************************
 
 // ** typedefs ******
-typedef std::vector<trigger::TriggerObject> trigO;
+//typedef std::vector<trigger::TriggerObject> trigO;
 //******************
 
 //**********************************************************
@@ -44,9 +44,9 @@ typedef std::vector<trigger::TriggerObject> trigO;
 //(HFfile,infile,HFpthatBins,QCDpthatBins,'b',usePUsub)
 double *heavyJetWeighting(std::string HFfile, std::string QCDfile, int HFnfiles, int QCDnfiles, char flavor, bool usePUsub){
 
-    const int nDivisions = 11;
+    const int nDivisions = 8;
     double *HFweights = new double[nDivisions];
-    const int weightBlocks[nDivisions+1] = {15,30,50,80,120,170,220,280,370,460,540,2000};
+    const int weightBlocks[nDivisions+1] = {15,30,50,80,120,170,220,280,2000};//370,460,540,2000};
 
     TChain *chH = NULL;
     TChain *chQCD = NULL;
@@ -111,7 +111,7 @@ double *heavyJetWeighting(std::string HFfile, std::string QCDfile, int HFnfiles,
 // Count the MC events to appropriately weight the pthat bins
 //**********************************************************
 
-int *countMCevents(std::string infile, std::string HFfile, bool usePUsub, int isMC){
+int *countMCevents(std::string infile, int nFiles, std::string HFfile, bool usePUsub, int isMC){
 
     TChain *ch = NULL;
     if(usePUsub) ch = new TChain("akPu3PFJetAnalyzer/t");
@@ -119,7 +119,7 @@ int *countMCevents(std::string infile, std::string HFfile, bool usePUsub, int is
     std::ifstream instr(infile.c_str(), std::ifstream::in);
     std::ifstream HFstr(HFfile.c_str(), std::ifstream::in);
     std::string filename;
-    for(int ifile=0; ifile<QCDpthatBins; ifile++){
+    for(int ifile=0; ifile<nFiles; ifile++){
         instr >> filename;
         ch->Add(filename.c_str());
     }
@@ -128,22 +128,38 @@ int *countMCevents(std::string infile, std::string HFfile, bool usePUsub, int is
     //For first time users, you should uncomment the bit below and recalculate the MCentries.
     //They are hardcoded here to save time since GetEntries on big TChains is time-consuming
 
-    //pp @ 5.02 TeV at MIT
+    //"official" pp @ 5.02 TeV at MIT
+	//t->GetEntries, full sample Nentries
+   /* MCentries[0] = 0;
+    MCentries[1] = 184697;
+    MCentries[2] = 187992;
+    MCentries[3] = 182080;
+    MCentries[4] = 192166;
+    MCentries[5] = 163634;
+    MCentries[6] = 176308;
+    MCentries[7] = 178740;
+    MCentries[8] = 207723;
+    MCentries[9] = 45210; //370 to 2k, //34908; 370 to 460
+   */ // MCentries[10] = 7160;
+    //MCentries[11] = 3142;
+
+    //btagged pp @ 5.02 TeV at MIT
     /*MCentries[0] = 0;
-      MCentries[1] = 0;
-      MCentries[2] = 887467;
-      MCentries[3] = 981984;
-      MCentries[4] = 972960;
-      MCentries[5] = 965903;
-      MCentries[6] = 900983;
-      MCentries[7] = 972206;
-      MCentries[8] = 1084966;
-      MCentries[9] = 949638;
-      MCentries[10] = 883328;
-      MCentries[11] = 1400565;
-     */
+    MCentries[1] = 0;
+    MCentries[2] = 887467;
+    MCentries[3] = 981984;
+    MCentries[4] = 972960;
+    MCentries[5] = 965903;
+    MCentries[6] = 900983;
+    MCentries[7] = 972206;
+    MCentries[8] = 1084966;
+    MCentries[9] =  949638; //370 to 460 //1233531; //370 to 2k
+    MCentries[10] = 283893;
+    //MCentries[10] = 883328;
+    //MCentries[11] = 1400565;
+    */
     //pA @ 5.02 TeV at MIT
-    MCentries[0] = 0;
+/*    MCentries[0] = 0;
     MCentries[1] = 0;
     MCentries[2] = 237013;
     MCentries[3] = 310545;
@@ -153,10 +169,60 @@ int *countMCevents(std::string infile, std::string HFfile, bool usePUsub, int is
     MCentries[7] = 284473;
     MCentries[8] = 156224;
     MCentries[9] = 33965; //370 to 2000, 26083; //370 to 460 
-    //MCentries[10] = 5443;
+	//MCentries[10] = 5443;
     //MCentries[11] = 2439;
+ */
+   //Updated pA @ 5 TeV at MIT
+/*    MCentries[0] = 0;
+    MCentries[1] = 308267;
+    MCentries[2] = 255578;
+    MCentries[3] = 312609;
+    MCentries[4] = 299768;
+    MCentries[5] = 217531;
+    MCentries[6] = 189316;
+    MCentries[7] = 283472;
+    MCentries[8] = 189878; //155963;
+    MCentries[9] = 0;//33915; //370 to 2k
+    MCentries[10] = 0;
+    MCentries[11] = 0;
+*/
 
-    /*MCentries[0] = ch->GetEntries("pthat<15");
+	//Updated pp at 5 TeV at MIT
+/*    MCentries[0] = 0;
+    MCentries[1] = 4422586;
+    MCentries[2] = 1156445;
+    MCentries[3] = 1012112;
+    MCentries[4] = 976514;
+    MCentries[5] = 966367;
+    MCentries[6] = 901062;
+    MCentries[7] = 972214;
+    MCentries[8] = 1084969;
+    MCentries[9] = 1233532;
+*/
+
+    //official pA MC at Vandy
+    MCentries[0] = 0;
+    MCentries[1] = 524545;
+    MCentries[2] = 530193;
+    MCentries[3] = 553893;
+    MCentries[4] = 546277;
+    MCentries[5] = 542126;
+    MCentries[6] = 505112;
+    MCentries[7] = 544734;
+    MCentries[8] = 608834;
+    MCentries[9] = 532254;
+    MCentries[10] = 720672;
+    MCentries[11] = 0;
+
+    const int mcentrnbin = 11;
+    const double mcentrxbin[12] = {0,15,30,50,80,120,170,220,280,370,460,99999};
+    TH1D *mcentr = new TH1D("mcentr","",mcentrnbin, mcentrxbin);
+    //ch->Project("mcentr","pthat");
+    //for(int ibin=0; ibin<mcentrnbin; ibin++){
+    //    MCentries[ibin] = mcentr->GetBinContent(ibin+1);
+   // }
+
+     /* MCentries[0] = 0;//ch->GetEntries("pthat<15");
       MCentries[1] = ch->GetEntries("pthat>=15 && pthat<30");
       MCentries[2] = ch->GetEntries("pthat>=30 && pthat<50");
       MCentries[3] = ch->GetEntries("pthat>=50 && pthat<80");
@@ -164,12 +230,15 @@ int *countMCevents(std::string infile, std::string HFfile, bool usePUsub, int is
       MCentries[5] = ch->GetEntries("pthat>=120 && pthat<170");
       MCentries[6] = ch->GetEntries("pthat>=170 && pthat<220");
       MCentries[7] = ch->GetEntries("pthat>=220 && pthat<280");
-      MCentries[8] = ch->GetEntries("pthat>=280 && pthat<370");
-      MCentries[9] = ch->GetEntries("pthat>=370 && pthat<460");
-      MCentries[10] = ch->GetEntries("pthat>=460 && pthat<540");
-      MCentries[11] = ch->GetEntries("pthat>=540 && pthat<2000");
+      MCentries[8] = ch->GetEntries("pthat>=280 && pthat<2000");
+      MCentries[9] = 0.;
+      MCentries[10]=0.;
+      MCentries[11]=0.;
+      //MCentries[9] = ch->GetEntries("pthat>=370 && pthat<460");
+      //MCentries[10] = ch->GetEntries("pthat>=460 && pthat<540");
+      //MCentries[11] = ch->GetEntries("pthat>=540 && pthat<2000");
      */
-    for(int i=0; i<9; i++){
+    for(int i=0; i<mcentrnbin; i++){
         cout << "QCD MCentries[" << i << "]: " << MCentries[i] << endl;
     }
 
@@ -199,9 +268,9 @@ int *countMCevents(std::string infile, std::string HFfile, bool usePUsub, int is
         tempEntr[6] = HFch->GetEntries("pthat>=170 && pthat<220");
         tempEntr[7] = HFch->GetEntries("pthat>=220 && pthat<280");
         tempEntr[8] = HFch->GetEntries("pthat>=280 && pthat<370");
-        tempEntr[9] = HFch->GetEntries("pthat>=370 && pthat<460");
-        tempEntr[10] = HFch->GetEntries("pthat>=460 && pthat<540");
-        tempEntr[11] = HFch->GetEntries("pthat>=540 && pthat<2000");
+        //tempEntr[9] = HFch->GetEntries("pthat>=370 && pthat<460");
+        //tempEntr[10] = HFch->GetEntries("pthat>=460 && pthat<540");
+        //tempEntr[11] = HFch->GetEntries("pthat>=540 && pthat<2000");
 
         for(int i=1; i<12; i++){
             cout << "HF entries[" << i << "]: " << tempEntr[i] << endl;
@@ -221,8 +290,8 @@ int *countMCevents(std::string infile, std::string HFfile, bool usePUsub, int is
 
 //[0] = Jet20, [1] = Jet40, [2] = Jet60, [3] = Jet80, [4] = Jet100
 
-double trigComb(bool *trg, double *pscl, double pt, int combinationMethod=6){
-    //int combinationMethod = 6; // BE SURE TO CHANGE THE TRIGGER COMBINATION METHOD IF YOU DON'T LIKE THE ONE CHOSEN HERE BY DEFAULT!
+double trigComb(bool *trg, int *pscl, double pt){
+    int combinationMethod = 6; // BE SURE TO CHANGE THE TRIGGER COMBINATION METHOD IF YOU DON'T LIKE THE ONE CHOSEN HERE BY DEFAULT!
     double weight=0;
 
     //HIN-12-017 (charged part RpA) combination method - solid but loses events that slip through the pt bins
@@ -235,6 +304,7 @@ double trigComb(bool *trg, double *pscl, double pt, int combinationMethod=6){
     }
 
     //Experimental method from STAR - works well but requires TRIGGER PT! NOT RECO PT!
+    //also will run into issues with double/int conversions!!
     if(combinationMethod==2){
         if(trg[0] && pt>=20 && pt<40) weight = 1./(1./pscl[0]);
         if((trg[0] || trg[1]) && pt>=40 && pt<60) weight = 1./(1./pscl[0] + 1./pscl[1] - 1./(pscl[0]*pscl[1]));
@@ -257,7 +327,7 @@ double trigComb(bool *trg, double *pscl, double pt, int combinationMethod=6){
         if(trg[3] && !trg[4]) weight = 1.;
         if(trg[2] && !trg[3] && !trg[4]) weight = 1.;
         if(trg[1] && !trg[2] && !trg[3] && !trg[4]) weight = 1.;
-        if(trg[0] && !trg[1] && !trg[2] && !trg[3] && !trg[4]) weight = 1./(1./pscl[0]);
+        if(trg[0] && !trg[1] && !trg[2] && !trg[3] && !trg[4]) weight = 1./(1./(double)pscl[0]);
     }
 
     //Combination fix because the triggers are stacked vertically on one another
@@ -269,8 +339,6 @@ double trigComb(bool *trg, double *pscl, double pt, int combinationMethod=6){
         if(!trg[4] && !trg[3] && !trg[2] && trg[1] && pt>=40 && pt<60) weight = pscl[1];
         if(!trg[4] && !trg[3] && !trg[2] && !trg[1] && trg[0] && pt>=20 && pt<40) weight = pscl[0];
     }
-
-    //Final CMS Methodology - jet-by-jet weighting method for CMS trigger-type setup.
     if(combinationMethod==6){
         if(trg[4] && pt>=100) weight = pscl[4];
         if(trg[3] && pt>=80 && pt<100) weight = pscl[3];
@@ -357,15 +425,14 @@ double triggerMatch(int trgObjSize, double* trigPhi, double* trigEta, double *tr
 // ~~~ MAIN PROGRAM ~~~
 //**********************************************************
 
-void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=1, int cbin=-1, int useGSP=0, int jetTrig=0, bool ExpandedTree=false, bool usePUsub=1, bool useJetTrgAssociation=1, bool doMinBias=0, bool doResCorr=0)
+void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, int ppPbPb=0, int isMuTrig=0, int isMC=0, int doNtuples=1, int doJets=1, int doTracks=1, int updateJEC=0, int cbin=-1, int useGSP=0, int jetTrig=0, bool ExpandedTree=false, bool usePUsub=1, bool useJetTrgAssociation=1, bool doMinBias=0, bool dopPb=1)
 {
-    
-    bool removeMisalignedRuns = 0;
     // isMC=0 --> Real data, ==1 --> QCD, ==2 --> bJet, ==3 --> cJet
-    Float_t minJetPt=10.;
+    Float_t minJetPt=20.;
+    double minRawPt=23.;
 
     if (isMuTrig) minJetPt=30;
-    Float_t maxJetEta=3;
+    Float_t maxJetEta=2.5;
     Float_t minMuPt=5;
 
     // cbin = -1 --> 0-100%
@@ -393,26 +460,31 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
         hDatavz->Scale(1./hDatavz->Integral());
     }
 
-    //pA vz reweighting
-    TF1 * fVz = new TF1("fVz","[0]+[1]*x+[2]*TMath::Power(x,2)+[3]*TMath::Power(x,3)+[4]*TMath::Power(x,4)", -15., 15.);  
-      fVz->SetParameters(1.60182e+00,1.08425e-03,-1.29156e-02,-7.24899e-06,2.80750e-05);        
+    TF1 *fVz = new TF1("fVz","[0]+[1]*x+[2]*TMath::Power(x,2)+[3]*TMath::Power(x,3)+[4]*TMath::Power(x,4)", -15., 15.);  
+    //OLD private MC
+    //if(dopPb) fVz->SetParameters(1.60182e+00,1.08425e-03,-1.29156e-02,-7.24899e-06,2.80750e-05);
+    //else fVz->SetParameters(1.50159e+00,-4.34648e-03,-1.31039e-02,2.12382e-05,3.06402e-05);
+    //NEW official MC
+    if(dopPb) fVz->SetParameters(1.65968e+00, -3.35481e-03, -1.39913e-02, 1.20582e-05, 3.24727e-05); 
+    else fVz->SetParameters(1.68907e+00, -3.82468e-03, -1.48634e-02, 1.76374e-05, 3.50409e-05);
 
-    TFile *fc, *fcrev;
-    TH1D *c_eta, *c_eta_rev;
-
-    if(usePUsub){
-        fc = new TFile("Casym_pPb_double_hcalbins_algo_akPu3PF_pt100_140_jet80_alphahigh_20_phicut250.root");
-        fcrev = new TFile("Casym_Pbp_double_hcalbins_algo_akPu3PF_pt100_140_jet80_alphahigh_20_phicut250.root");
-    }
-    else{
-        fc = new TFile("Casym_pPb_double_hcalbins_algo_ak3PF_pt100_140_jet80_alphahigh_20_phicut250.root");
-        fcrev = new TFile("Casym_Pbp_double_hcalbins_algo_ak3PF_pt100_140_jet80_alphahigh_20_phicut250.root");
-    }
-    c_eta = (TH1D*)fc->Get("C_asym");
-    c_eta_rev = (TH1D*)fcrev->Get("C_asym");
+    TFile *f = new TFile("Casym_pPb_double_hcalbins_algo_akPu3PF_pt100_140_jet80_alphahigh_20_phicut250.root");
+    TFile *frev = new TFile("Casym_Pbp_double_hcalbins_algo_akPu3PF_pt100_140_jet80_alphahigh_20_phicut250.root");
+    TH1D *c_eta = (TH1D*)f->Get("C_asym");
+    TH1D *c_eta_rev = (TH1D*)frev->Get("C_asym");
     TF1 *fcorr = new TF1("fcorr","1-[0]/pow(x,[1])",20,300);
     if(usePUsub){ fcorr->SetParameter(0,0.3015); fcorr->SetParameter(1,0.8913); }
     else{ fcorr->SetParameter(0,0.8648); fcorr->SetParameter(1,0.8167); }
+
+    //TFile *fC = new TFile("/net/hidsk0001/d00/scratch/kjung/dropbox/centReweight_pPbJet.root");
+    //TH1D *fCent = (TH1D*)fC->Get("CentReweightJet_All");
+    TF1 * fCen = new TF1("fCen","[0]*exp([1]+[2]*x+[3]*x*x+[4]*x*x*x+[5]*x*x*x*x+[6]*x*x*x*x*x)", 0., 100.);
+    //OLD private MC
+    //if(dopPb) fCen->SetParameters(8.68073e-03, 5.09356e+00, -1.33053e-02, 1.46904e-03, -6.99681e-05, 1.06721e-06, -5.21398e-09);    
+    //else fCen->SetParameters(1.05408e-02, 5.27477e+00, -8.03382e-02, 3.51669e-03, -8.85332e-05, 1.08917e-06, -4.90091e-09);
+    //NEW official MC
+    if(dopPb) fCen->SetParameters(5.81628e-03, 4.88285e+00, 9.60958e-02, -5.16892e-03, 1.04572e-04, -9.89614e-07, 3.79293e-09);
+    else fCen->SetParameters(5.30157e-03, 4.76386e+00, 1.30991e-01, -6.38698e-03, 1.17033e-04, -9.69067e-07, 3.17267e-09);
 
     cout << "Analyzing Trees! Assuming " << QCDpthatBins << " QCD pthat bins, and " << HFpthatBins << " B/C pthat bins." << endl;
     if(usePUsub) cout << "Running on underlying event-subtracted jets!! (akPu3PF)" << endl;
@@ -421,11 +493,13 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     if(useJetTrgAssociation) cout << "Using Jet-trigger association" << endl;
     else cout << "WARNING! No Jet-Trigger association will be used - reverting to recoPt.  Only use this with Trigger Combination method 1!" << endl;
 
-    if(removeMisalignedRuns) cout << "Removing runs 210498 through 210658! For Cross-checks ONLY!" << endl;
+    if(dopPb && isMC) cout<< "dopPb flag set - assuming this is pPb MC" << endl;
+    else if(isMC) cout << "dopPb flag unset - assuming this is Pbp MC..." << endl;
 
-    int pthatbin[10] = {15,30,50,80,120,170,220,280,370,2000};
+    int pthatbin[11] = {15,30,50,80,120,170,220,280,370,460,99999};
     double w = 1.;
-    double wght[9]={0.5335, 3.378E-02, 3.778E-03, 4.412E-04, 6.147E-05, 1.018E-05, 2.477E-06, 6.160E-07, 1.088E-07};
+    //double wght[10]={0.5335, 3.378E-02, 3.778E-03, 4.412E-04, 6.147E-05, 1.018E-05, 2.477E-06, 6.160E-07, 1.088E-07,0};//1.088E-07, 2.527E-08}; for pp - last at 370
+    double wght[11]={0.5335, 3.378E-02, 3.778E-03, 4.412E-04, 6.147E-05, 1.018E-05, 2.477E-06, 6.160E-07, 1.088E-07,2.527E-08,0}; //for pA - last at 280
     //This is the old 2.76 TeV weighting!!
     //double wght[8]={0.2034, 1.075E-02, 1.025E-03, 9.865E-05, 1.129E-05, 1.465E-06, 2.837E-07, 5.323E-08};
 
@@ -451,18 +525,24 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
             infile = "wxie_MinBiasUPC_all.txt";
         }
         else if(!isMC){ 
-            infile = "PAHighPtForest_4th.txt";
-            //infile = "PAHighPtPurdueForest_3rd.txt"; //"PAHighPtForest_4th.txt";
+            infile = "HighPtForest_18thProd_Full.txt";//HalfDataList_july2014_forDebug.txt"; 
+            //infile = "JPRecalib_data_may14.txt";
+            //infile = "pPbRecalibFullList.txt";
         }
         else if(isMC){
-            infile = "pPbMCBForestListMerged.txt";
+            //infile = "testJEC.txt";
+	    if(dopPb) infile = "pPb_officialMC_Full_Dec2014.txt"; //pPbFullBTagMC_March2014.txt"; 
+	    else infile = "pPb_officialMC_reverse_Full_Dec2014.txt";
+	    //infile = "pPbMCBForestListMerged.txt";
             //infile = "pPbMCBForestList.txt";
             //infile = "Pythia_BTag_502TeV.txt";
-            if(isMC==2){
-                HFfile = "pPbMCBForestList.txt";
+            //infile = "PythiaPP_502TeV_DogaNoBTag.txt";
+	    ////infile = "PythiaPP_502TeV_Fix2Sample.txt";
+	    if(isMC==2){
+                HFfile = "pPbFullBTagMC_BGenList_Apr2014.txt";
             }
             else if(isMC==3){
-                HFfile = "pPbMCBForestList.txt";
+                HFfile = "pPbFullBTagMC_CGenList_Apr2014.txt";
             }
             else if(isMC>3){ 
                 cout << "I don't understand this MC number!" << endl;
@@ -470,6 +550,8 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
             }
         }
     }
+
+    cout << "infile: "<< infile << endl;
 
     //Legacy code to get trigger prescales via trigger overlaps.
     //if(!isMC && !ppPbPb){
@@ -488,6 +570,7 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     Int_t           bin;
     Int_t           lumi;
     Float_t         hf;
+    Float_t         hiHFplusEta4;
     Float_t           vz;
     Int_t           nref;
     Float_t         rawpt[1000];
@@ -547,6 +630,7 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     Int_t           refparton_flavor[1000];
     Int_t           refparton_flavorForB[1000];
     Bool_t           refparton_isGSP[1000];
+    Int_t	  subid[1000];
     Int_t 	  HLT_PAJet20_NoJetID_v1;
     Int_t 	  HLT_PAJet40_NoJetID_v1;
     Int_t 	  HLT_PAJet60_NoJetID_v1;
@@ -565,11 +649,12 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
 
     Int_t           L1_SingleJet16_BptxAND_Prescl;
     Int_t           L1_SingleJet36_Prescl;
-    trigO           *HLT_PAJet_NoJetID_v1_trigObject[6];
+    /*trigO           *HLT_PAJet_NoJetID_v1_trigObject[6];
     for(int i=0; i<6; i++){
         HLT_PAJet_NoJetID_v1_trigObject[i] = new trigO;
-    }  
+    } */ 
     double         triggerPt;
+    float         maxTrgPt;
 
     Int_t           pVertexFilterCutGplusUpsPP;
     Int_t           pPAcollisionEventSelectionPA;
@@ -646,11 +731,13 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
         if(usePUsub) jetRecoType = "akPu3PF";
         else jetRecoType = "ak3PF";
         string datoutfile;
-        if(doMinBias) datoutfile = "pPbdata_ppreco_"+jetRecoType+"_MinBiasTrig_etashift_"+fileappend+".root";
-        else datoutfile = "pPbdata_ppreco_"+jetRecoType+"_jetTrig_etashift_FinalTC_WxieForest4_FirstHalf_NoEvtSelection_NoResCorr_noIPupperCut_"+fileappend+".root";
-        string QCDoutfile = "pPbMC_ppReco_"+jetRecoType+"_QCDjetTrig_etashift_WeightCorr_noIPupperCut_"+fileappend+".root";
-        string Boutfile = "pPbMC_ppReco_"+jetRecoType+"_BjetTrig_etashift_noIPupperCut_"+fileappend+".root";
-        string Coutfile = "pPbMC_ppReco_"+jetRecoType+"_CjetTrig_etashift_noIPupperCut_"+fileappend+".root";
+        if(doMinBias) datoutfile = "pPbdata_ppreco_"+jetRecoType+"_MinBiasTrig_etashift_TrgCombMethod6_"+fileappend+".root";
+        else datoutfile = "pPbdata_ppreco_"+jetRecoType+"_jetTrig_etashift_fullIPrecalib_FinalTC_NoResCorr_FullReweight_v17Corr_noIPupperCut_"+fileappend+".root";
+        string QCDoutfile;
+        if(dopPb) QCDoutfile= "pPbMC_ppReco_"+jetRecoType+"_QCDjetTrig_officialMC_etashift_noTrgSelection_JetCleaned_MCWeightFinal_WithCentVzWeight_"+fileappend+".root";
+        else QCDoutfile= "pPbMC_ppReco_"+jetRecoType+"_QCDjetTrig_REVERSED_officialMC_etashift_noTrgSelection_JetCleaned_MCWeightFinal_WithCentVzWeight_"+fileappend+".root";
+        string Boutfile = "pPbMC_ppReco_"+jetRecoType+"_BjetTrig_etashift_noTrgSelection_MCWeightFinalWithSmoothedVzCentWeight_BGenJets"+fileappend+".root";
+        string Coutfile = "pPbMC_ppReco_"+jetRecoType+"_CjetTrig_etashift_noTrgSelection_MCWeightFinalWithSmoothedVzCentWeight_CGenJets_"+fileappend+".root";
 
         if( isRecopp&& isMuTrig) { // pp reco, muon triggered
             if(isMC)fout=new TFile("histos/ppMC_ppReco_muTrig_noIPupperCut.root","recreate");
@@ -672,10 +759,8 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
         }
     }
 
-    TH1D *hyaxian = new TH1D("hyaxian","",1000,0,1000);
-
-    TH1D *hbin = new TH1D("hbin","hbin",40,-0.5,39.5);
-    TH1D *hbinw = new TH1D("hbinw","hbinw",40,-0.5,39.5);
+    TH1D *hbin = new TH1D("hbin","hbin",200,-0.5,199.5);
+    TH1D *hbinw = new TH1D("hbinw","hbinw",200,-0.5,199.5);
     hbin->Sumw2(); hbinw->Sumw2(); 
 
     TH1D *hvz = new TH1D("hvz","hvz",120,-15.,15.);
@@ -845,10 +930,10 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     TH1D *hip2dL = new TH1D("hip2dL","hip2dL",40,-0.1,0.1);
     hip2d->Sumw2(); hip2dB->Sumw2(); hip2dC->Sumw2(); hip2dL->Sumw2(); 
 
-    TH1D *hip2dSig = new TH1D("hip2dSig","hip2dSig",70,-35,35);
-    TH1D *hip2dSigB = new TH1D("hip2dSigB","hip2dSigB",70,-35,35);
-    TH1D *hip2dSigC = new TH1D("hip2dSigC","hip2dSigC",70,-35,35);
-    TH1D *hip2dSigL = new TH1D("hip2dSigL","hip2dSigL",70,-35,35);
+    TH1D *hip2dSig = new TH1D("hip2dSig","hip2dSig",100,-35,65);
+    TH1D *hip2dSigB = new TH1D("hip2dSigB","hip2dSigB",100,-35,65);
+    TH1D *hip2dSigC = new TH1D("hip2dSigC","hip2dSigC",100,-35,65);
+    TH1D *hip2dSigL = new TH1D("hip2dSigL","hip2dSigL",100,-35,65);
     hip2dSig->Sumw2(); hip2dSigB->Sumw2(); hip2dSigC->Sumw2(); hip2dSigL->Sumw2(); 
 
     TH1D *hip2d1 = new TH1D("hip2d1","hip2d1",40,-0.1,0.1);
@@ -857,10 +942,10 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     TH1D *hip2d1L = new TH1D("hip2d1L","hip2d1L",40,-0.1,0.1);
     hip2d1->Sumw2(); hip2d1B->Sumw2(); hip2d1C->Sumw2(); hip2d1L->Sumw2(); 
 
-    TH1D *hip2dSig1 = new TH1D("hip2dSig1","hip2dSig1",70,-35,35);
-    TH1D *hip2dSig1B = new TH1D("hip2dSig1B","hip2dSig1B",70,-35,35);
-    TH1D *hip2dSig1C = new TH1D("hip2dSig1C","hip2dSig1C",70,-35,35);
-    TH1D *hip2dSig1L = new TH1D("hip2dSig1L","hip2dSig1L",70,-35,35);
+    TH1D *hip2dSig1 = new TH1D("hip2dSig1","hip2dSig1",100,-35,65);
+    TH1D *hip2dSig1B = new TH1D("hip2dSig1B","hip2dSig1B",100,-35,65);
+    TH1D *hip2dSig1C = new TH1D("hip2dSig1C","hip2dSig1C",100,-35,65);
+    TH1D *hip2dSig1L = new TH1D("hip2dSig1L","hip2dSig1L",100,-35,65);
     hip2dSig1->Sumw2(); hip2dSig1B->Sumw2(); hip2dSig1C->Sumw2(); hip2dSig1L->Sumw2(); 
 
     TH1D *hip2d2 = new TH1D("hip2d2","hip2d2",40,-0.1,0.1);
@@ -869,10 +954,10 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     TH1D *hip2d2L = new TH1D("hip2d2L","hip2d2L",40,-0.1,0.1);
     hip2d2->Sumw2(); hip2d2B->Sumw2(); hip2d2C->Sumw2(); hip2d2L->Sumw2(); 
 
-    TH1D *hip2dSig2 = new TH1D("hip2dSig2","hip2dSig2",70,-35,35);
-    TH1D *hip2dSig2B = new TH1D("hip2dSig2B","hip2dSig2B",70,-35,35);
-    TH1D *hip2dSig2C = new TH1D("hip2dSig2C","hip2dSig2C",70,-35,35);
-    TH1D *hip2dSig2L = new TH1D("hip2dSig2L","hip2dSig2L",70,-35,35);
+    TH1D *hip2dSig2 = new TH1D("hip2dSig2","hip2dSig2",100,-35,65);
+    TH1D *hip2dSig2B = new TH1D("hip2dSig2B","hip2dSig2B",100,-35,65);
+    TH1D *hip2dSig2C = new TH1D("hip2dSig2C","hip2dSig2C",100,-35,65);
+    TH1D *hip2dSig2L = new TH1D("hip2dSig2L","hip2dSig2L",100,-35,65);
     hip2dSig2->Sumw2(); hip2dSig2B->Sumw2(); hip2dSig2C->Sumw2(); hip2dSig2L->Sumw2(); 
 
     TH1D *hip2d3 = new TH1D("hip2d3","hip2d3",40,-0.1,0.1);
@@ -881,10 +966,10 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     TH1D *hip2d3L = new TH1D("hip2d3L","hip2d3L",40,-0.1,0.1);
     hip2d3->Sumw2(); hip2d3B->Sumw2(); hip2d3C->Sumw2(); hip2d3L->Sumw2(); 
 
-    TH1D *hip2dSig3 = new TH1D("hip2dSig3","hip2dSig3",70,-35,35);
-    TH1D *hip2dSig3B = new TH1D("hip2dSig3B","hip2dSig3B",70,-35,35);
-    TH1D *hip2dSig3C = new TH1D("hip2dSig3C","hip2dSig3C",70,-35,35);
-    TH1D *hip2dSig3L = new TH1D("hip2dSig3L","hip2dSig3L",70,-35,35);
+    TH1D *hip2dSig3 = new TH1D("hip2dSig3","hip2dSig3",100,-35,65);
+    TH1D *hip2dSig3B = new TH1D("hip2dSig3B","hip2dSig3B",100,-35,65);
+    TH1D *hip2dSig3C = new TH1D("hip2dSig3C","hip2dSig3C",100,-35,65);
+    TH1D *hip2dSig3L = new TH1D("hip2dSig3L","hip2dSig3L",100,-35,65);
     hip2dSig3->Sumw2(); hip2dSig3B->Sumw2(); hip2dSig3C->Sumw2(); hip2dSig3L->Sumw2(); 
 
     TH1D *hip3d = new TH1D("hip3d","hip3d",40,-0.1,0.1);
@@ -893,10 +978,10 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     TH1D *hip3dL = new TH1D("hip3dL","hip3dL",40,-0.1,0.1);
     hip3d->Sumw2(); hip3dB->Sumw2(); hip3dC->Sumw2(); hip3dL->Sumw2(); 
 
-    TH1D *hip3dSig = new TH1D("hip3dSig","hip3dSig",70,-35,35);
-    TH1D *hip3dSigB = new TH1D("hip3dSigB","hip3dSigB",70,-35,35);
-    TH1D *hip3dSigC = new TH1D("hip3dSigC","hip3dSigC",70,-35,35);
-    TH1D *hip3dSigL = new TH1D("hip3dSigL","hip3dSigL",70,-35,35);
+    TH1D *hip3dSig = new TH1D("hip3dSig","hip3dSig",100,-35,65);
+    TH1D *hip3dSigB = new TH1D("hip3dSigB","hip3dSigB",100,-35,65);
+    TH1D *hip3dSigC = new TH1D("hip3dSigC","hip3dSigC",100,-35,65);
+    TH1D *hip3dSigL = new TH1D("hip3dSigL","hip3dSigL",100,-35,65);
     hip3dSig->Sumw2(); hip3dSigB->Sumw2(); hip3dSigC->Sumw2(); hip3dSigL->Sumw2(); 
 
     TH1D *hip3d1 = new TH1D("hip3d1","hip3d1",40,-0.1,0.1);
@@ -905,10 +990,10 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     TH1D *hip3d1L = new TH1D("hip3d1L","hip3d1L",40,-0.1,0.1);
     hip3d1->Sumw2(); hip3d1B->Sumw2(); hip3d1C->Sumw2(); hip3d1L->Sumw2(); 
 
-    TH1D *hip3dSig1 = new TH1D("hip3dSig1","hip3dSig1",70,-35,35);
-    TH1D *hip3dSig1B = new TH1D("hip3dSig1B","hip3dSig1B",70,-35,35);
-    TH1D *hip3dSig1C = new TH1D("hip3dSig1C","hip3dSig1C",70,-35,35);
-    TH1D *hip3dSig1L = new TH1D("hip3dSig1L","hip3dSig1L",70,-35,35);
+    TH1D *hip3dSig1 = new TH1D("hip3dSig1","hip3dSig1",100,-35,65);
+    TH1D *hip3dSig1B = new TH1D("hip3dSig1B","hip3dSig1B",100,-35,65);
+    TH1D *hip3dSig1C = new TH1D("hip3dSig1C","hip3dSig1C",100,-35,65);
+    TH1D *hip3dSig1L = new TH1D("hip3dSig1L","hip3dSig1L",100,-35,65);
     hip3dSig1->Sumw2(); hip3dSig1B->Sumw2(); hip3dSig1C->Sumw2(); hip3dSig1L->Sumw2(); 
 
     TH1D *hip3d2 = new TH1D("hip3d2","hip3d2",40,-0.1,0.1);
@@ -917,10 +1002,10 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     TH1D *hip3d2L = new TH1D("hip3d2L","hip3d2L",40,-0.1,0.1);
     hip3d2->Sumw2(); hip3d2B->Sumw2(); hip3d2C->Sumw2(); hip3d2L->Sumw2(); 
 
-    TH1D *hip3dSig2 = new TH1D("hip3dSig2","hip3dSig2",70,-35,35);
-    TH1D *hip3dSig2B = new TH1D("hip3dSig2B","hip3dSig2B",70,-35,35);
-    TH1D *hip3dSig2C = new TH1D("hip3dSig2C","hip3dSig2C",70,-35,35);
-    TH1D *hip3dSig2L = new TH1D("hip3dSig2L","hip3dSig2L",70,-35,35);
+    TH1D *hip3dSig2 = new TH1D("hip3dSig2","hip3dSig2",100,-35,65);
+    TH1D *hip3dSig2B = new TH1D("hip3dSig2B","hip3dSig2B",100,-35,65);
+    TH1D *hip3dSig2C = new TH1D("hip3dSig2C","hip3dSig2C",100,-35,65);
+    TH1D *hip3dSig2L = new TH1D("hip3dSig2L","hip3dSig2L",100,-35,65);
     hip3dSig2->Sumw2(); hip3dSig2B->Sumw2(); hip3dSig2C->Sumw2(); hip3dSig2L->Sumw2(); 
 
     TH1D *hip3d3 = new TH1D("hip3d3","hip3d3",40,-0.1,0.1);
@@ -929,10 +1014,10 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     TH1D *hip3d3L = new TH1D("hip3d3L","hip3d3L",40,-0.1,0.1);
     hip3d3->Sumw2(); hip3d3B->Sumw2(); hip3d3C->Sumw2(); hip3d3L->Sumw2(); 
 
-    TH1D *hip3dSig3 = new TH1D("hip3dSig3","hip3dSig3",70,-35,35);
-    TH1D *hip3dSig3B = new TH1D("hip3dSig3B","hip3dSig3B",70,-35,35);
-    TH1D *hip3dSig3C = new TH1D("hip3dSig3C","hip3dSig3C",70,-35,35);
-    TH1D *hip3dSig3L = new TH1D("hip3dSig3L","hip3dSig3L",70,-35,35);
+    TH1D *hip3dSig3 = new TH1D("hip3dSig3","hip3dSig3",100,-35,65);
+    TH1D *hip3dSig3B = new TH1D("hip3dSig3B","hip3dSig3B",100,-35,65);
+    TH1D *hip3dSig3C = new TH1D("hip3dSig3C","hip3dSig3C",100,-35,65);
+    TH1D *hip3dSig3L = new TH1D("hip3dSig3L","hip3dSig3L",100,-35,65);
     hip3dSig3->Sumw2(); hip3dSig3B->Sumw2(); hip3dSig3C->Sumw2(); hip3dSig3L->Sumw2(); 
 
     TH1D *hipDist2Jet = new TH1D("hipDist2Jet","hipDist2Jet",40,-0.1,0);
@@ -957,25 +1042,33 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     TH1D *dTrgPhi = new TH1D("dTrgPhi","",100,-1,1);
     dTrgEta->Sumw2(); dTrgPhi->Sumw2();
 
-    Double_t t_jtpt, t_jteta, t_jtphi, t_rawpt, t_refpt, t_discr_prob, t_discr_ssvHighEff, t_discr_ssvHighPur, t_discr_csvSimple, t_svtxm;
-    Double_t t_pthat, t_weight, t_maxTrgPt;
+    Float_t t_jtpt, t_jteta, t_jtphi, t_rawpt, t_refpt;
+    Double_t t_discr_prob, t_discr_ssvHighEff, t_discr_ssvHighPur, t_discr_csvSimple, t_svtxm;
+    Double_t t_pthat, t_weight, t_vz, t_resCorr;
     Int_t t_refparton_flavorForB;
     Int_t trigIndex, t_bin;
     Int_t trgAssn;
     Int_t t_run;
-    Int_t evtSelection;
+    Int_t t_pthatFile;
 
     Int_t t_nIP;
     Double_t t_ipPt[100], t_ipProb0[100];
     Int_t t_ipJetIndex[100];
+    Int_t t_subid;
+
+    Int_t t_nsvtx, t_svtxntrk, t_nIPtrk, t_nselIPtrk;
+    Double_t t_svtxdl, t_svtxdls, t_svtxpt;
+
+    Int_t t_evtSelection;
+    Double_t t_chargedMax, t_chargedSum, t_neutralMax, t_neutralSum;
 
     TTree *nt = new TTree("nt","");
     nt->Branch("run",&t_run, "run/I");
-    nt->Branch("jtpt",&t_jtpt,"jtpt/D");
-    nt->Branch("jteta",&t_jteta,"jteta/D");
-    nt->Branch("jtphi",&t_jtphi,"jtphi/D");
-    nt->Branch("rawpt",&t_rawpt,"rawpt/D");
-    nt->Branch("refpt",&t_refpt,"refpt/D");
+    nt->Branch("jtpt",&t_jtpt,"jtpt/F");
+    nt->Branch("jteta",&t_jteta,"jteta/F");
+    nt->Branch("jtphi",&t_jtphi,"jtphi/F");
+    nt->Branch("rawpt",&t_rawpt,"rawpt/F");
+    nt->Branch("refpt",&t_refpt,"refpt/F");
     nt->Branch("refparton_flavorForB",&t_refparton_flavorForB,"refparton_flavorForB/I");
     nt->Branch("discr_prob",&t_discr_prob,"discr_prob/D");
     nt->Branch("discr_ssvHighEff",&t_discr_ssvHighEff,"discr_ssvHighEff/D");
@@ -983,6 +1076,17 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
     nt->Branch("discr_csvSimple",&t_discr_csvSimple,"discr_csvSimple/D");
     nt->Branch("svtxm",&t_svtxm,"svtxm/D");
     nt->Branch("bin",&t_bin,"bin/I");
+    nt->Branch("nsvtx",&t_nsvtx,"nsvtx/I");
+    nt->Branch("svtxntrk",&t_svtxntrk,"svtxntrk/D");
+    nt->Branch("svtxdl",&t_svtxdl,"svtxdl/D");
+    nt->Branch("svtxdls",&t_svtxdls,"svtxdls/D");
+    nt->Branch("svtxpt",&t_svtxpt,"svtxpt/D");
+    nt->Branch("nIPtrk",&t_nIPtrk, "nIPtrk/I");
+    nt->Branch("nselIPtrk",&t_nselIPtrk,"nselIPtrk/I");
+    nt->Branch("subid",&t_subid,"subid/I");
+    nt->Branch("vz",&t_vz,"vz/D");  
+    nt->Branch("hiHFplusEta4",&hiHFplusEta4,"hiHFplusEta4/F");
+ 
     if(ppPbPb){
         nt->Branch("trigIndex",&trigIndex,"trigIndex/I");
     }
@@ -1006,17 +1110,28 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
         nt->Branch("HLT_Jet100_noJetID_v1_Prescl",&HLT_PAJet100_NoJetID_v1_Prescl,"HLT_Jet100_noJetID_v1_Prescl/I");
         nt->Branch("HLT_Jet120_noJetID_v1_Prescl",&HLT_PAJet120_NoJetID_v1_Prescl,"HLT_Jet120_noJetID_v1_Prescl/I");
         nt->Branch("triggerPt",&triggerPt,"triggerPt/D");
-        nt->Branch("maxTrgPt",&t_maxTrgPt,"maxTrgPt/D");
 
         nt->Branch("pVertexFilterCutGplus",&pVertexFilterCutGplusUpsPP,"pVertexFilterCutGplus/I");
-        nt->Branch("vz",&vz,"vz/F");
-        nt->Branch("evtSelection",&evtSelection,"evtSelection/I");
-        
+    
+        nt->Branch("evtSelection",&t_evtSelection,"evtSelection/I");
+        nt->Branch("neutralMax",&t_neutralMax,"neutralMax/D");
+        nt->Branch("neutralSum",&t_neutralSum,"neutralSum/D");
+        nt->Branch("chargedMax",&t_chargedMax,"chargedMax/D");
+        nt->Branch("chargedSum",&t_chargedSum,"chargedSum/D");
     }
 
     if(isMC) nt->Branch("pthat",&t_pthat,"pthat/D");
     nt->Branch("weight",&t_weight,"weight/D");
+    nt->Branch("resCorr",&t_resCorr,"resCorr/D");
+    nt->Branch("pthatFile",&t_pthatFile,"pthatFile/I");
 
+    Double_t evtPthat;
+    Double_t evtWeight;
+    TTree *ntEvt = new TTree("ntEvt","pthat per event");
+    ntEvt->Branch("pthat", &evtPthat, "pthat/D");
+    ntEvt->Branch("weight", &evtWeight, "weight/D");
+    ntEvt->Branch("vz", &vz, "vz/D");
+    ntEvt->Branch("bin", &bin, "bin/D");
 
     double unmatchedTriggerPt;
     TTree *ntTrg = new TTree("ntTrg","unmatched TriggerPt");
@@ -1040,8 +1155,8 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
 
     // grab the JEC's
 
-    vector<JetCorrectorParameters> vpar_HI53x;   
-    FactorizedJetCorrector *JEC_HI53x;
+/*    vector<JetCorrectorParameters> vpar_HI53x;   
+    FactorizedJetCorrector *JEC_HI53x = new FactorizedJetCorrector(vpar_HI53x);
 
     if(updateJEC){   
 
@@ -1050,13 +1165,17 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
         string L2Name;
         string L3Name;
         if(usePUsub){
-            L2Name="JEC_dijet_L2Relative_AKPu3PF.txt";
-            L3Name="JEC_dijet_L3Absolute_AKPu3PF.txt";
+            L2Name="Pbp_PythiaZ2_5020GeV_538HIp2_v17_L2Relative_AKPu3PF.txt";
+            L3Name="Pbp_PythiaZ2_5020GeV_538HIp2_v17_L3Absolute_AKPu3PF.txt";    
         }
         else{
-            L2Name="JEC_dijet_L2Relative_AK3PF.txt";
-            L3Name="JEC_dijet_L3Absolute_AK3PF.txt";
+            L2Name="Pbp_PythiaZ2_5020GeV_538HIp2_v17_L2Relative_AK3PF.txt";
+            L3Name="Pbp_PythiaZ2_5020GeV_538HIp2_v17_L3Absolute_AK3PF.txt";
         }
+
+	cout << "Using .txt files to update JECs..." << endl;
+	cout << "L2: "<< L2Name << endl;
+	cout << "L3: "<< L3Name << endl;
 
         JetCorrectorParameters *parHI53x_l2 = new JetCorrectorParameters(L2Name.c_str());
         JetCorrectorParameters *parHI53x_l3 = new JetCorrectorParameters(L3Name.c_str());
@@ -1064,45 +1183,51 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
         vpar_HI53x.push_back(*parHI53x_l2);
         vpar_HI53x.push_back(*parHI53x_l3);
         JEC_HI53x = new FactorizedJetCorrector(vpar_HI53x);
-    }     
+    }*/    
 
     std::ifstream instr(infile.c_str(), std::ifstream::in);
     std::ifstream HFstr(HFfile.c_str(), std::ifstream::in);
     std::string filename;
     int nFiles=0;
     int vzReject=0, vzPass=0;
-    if(ppPbPb) nFiles=1;
-    else if(isMC){
-        nFiles=QCDpthatBins;
+    nFiles=endfile-startfile;
+    if(isMC){
+        nFiles=endfile-startfile;
         if(isMC>1) nFiles+=HFpthatBins;
     }
-    else{
-        nFiles=dataFiles;
-    }
     cout << "skipping to " << startfile << "..." << endl;
+
     for(int ifile=0; ifile<startfile; ifile++){
         if(!ppPbPb){
-            if((isMC && ifile<QCDpthatBins) || !isMC){
-                instr >> filename;
-            }
-            else if(isMC && ifile>=QCDpthatBins){
-                HFstr >> filename;
-            }
+            instr >> filename;
+
+            //else if(isMC && ifile>=QCDpthatBins){
+            //    HFstr >> filename;
+            //}
+            //else if(!isMC){
+            //    instr>>filename;
+            //}
         }
     }
 
     int jet20pscl=0, jet40pscl=0, jet60pscl=0, jet80pscl=0, jet100pscl=0;
     int nn=0;
+    int nJets=0, nRemoved=0;
+    int ptboundary[9] = {15,30,50,80,120,170,220,280,2000};
+    //if(isMC>1) ptboundary[6] = 2000;
     cout << "reading from " << startfile << " to " << endfile << endl;
-    for(int ifile=startfile; ifile<endfile; ifile++){
+    for(int ifile=startfile; ifile<startfile+nFiles; ifile++){
         //Add b/c statistics to the HF statistics
         if(!ppPbPb){
-            if((isMC && ifile<QCDpthatBins) || !isMC){
+            //if((isMC>1 && ifile<QCDpthatBins) || !isMC){
                 instr >> filename;
-            }
-            else if(isMC && ifile>=QCDpthatBins){
-                HFstr >> filename;
-            }
+            //}
+            //else if(isMC>1 && ifile>=QCDpthatBins){
+            //    HFstr >> filename;
+            //}
+            //else if(isMC==1){
+            //    instr>>filename;
+            //}
             std::cout << "File: " << filename << std::endl;
             fin = TFile::Open(filename.c_str());
             if(!fin){
@@ -1124,6 +1249,11 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
         if(tEvt) t->AddFriend("hiEvtAnalyzer/HiTree");    
         if(tHlt) t->AddFriend("hltanalysis/HltTree");
         if(tSkim) t->AddFriend("skimanalysis/HltTree");
+
+        if(isMC){
+            t->AddFriend("hltobject/jetObjTree");
+            t->SetBranchAddress("pt",&maxTrgPt);
+        }
 
         t->SetBranchAddress("evt",&evt);
         t->SetBranchAddress("lumi",&lumi);
@@ -1180,7 +1310,7 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
 
         t->SetBranchAddress("mupt",mupt);
         if(ppPbPb) t->SetBranchAddress("muptPF",muptPF);
-        if(!ppPbPb) t->SetBranchAddress("pVertexFilterCutGplus",&pVertexFilterCutGplusUpsPP);
+        if(!ppPbPb && !isMC) t->SetBranchAddress("pVertexFilterCutGplus",&pVertexFilterCutGplusUpsPP);
 
         /*
            t->SetBranchAddress("mue",mue);
@@ -1203,8 +1333,8 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
             t->SetBranchAddress("refparton_pt",refparton_pt);
             t->SetBranchAddress("refparton_flavor",refparton_flavor);
             t->SetBranchAddress("refparton_flavorForB",refparton_flavorForB);
-            t->SetBranchAddress("refparton_isGSP",refparton_isGSP);
-
+            if(isMC>1) t->SetBranchAddress("refparton_isGSP",refparton_isGSP);
+	    t->SetBranchAddress("subid",subid);
 
             TBranch* tweight;
             if(isMC){
@@ -1215,8 +1345,8 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                         useWeight=0;
                     }
                 }
-                if(!ppPbPb && !useWeight && ifile==startfile){
-                    MCentr = countMCevents(infile, HFfile, usePUsub, isMC);
+                if(!ppPbPb && ifile==startfile){
+                    MCentr = countMCevents(infile, endfile-startfile, HFfile, usePUsub, isMC);
                     // if(isMC>1){
                     //  for(int lm=HFpthatBins+2; lm<QCDpthatBins+1; lm++){
                     //    MCentr[HFpthatBins] += MCentr[lm]; //hack because we go to pthat bin 540 in QCD jet and only pthat bin 170 in b/c jet MC
@@ -1275,31 +1405,35 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
 
             //This bit will complain if the trigger pt is not in the Forest object! 
             //Comment it out if you don't want to use the STAR trg combination method
-            t->SetBranchAddress("HLT_PAJet20_NoJetID_v1_trigObject",&HLT_PAJet_NoJetID_v1_trigObject[0]);
+            /*t->SetBranchAddress("HLT_PAJet20_NoJetID_v1_trigObject",&HLT_PAJet_NoJetID_v1_trigObject[0]);
             t->SetBranchAddress("HLT_PAJet40_NoJetID_v1_trigObject",&HLT_PAJet_NoJetID_v1_trigObject[1]);
             t->SetBranchAddress("HLT_PAJet60_NoJetID_v1_trigObject",&HLT_PAJet_NoJetID_v1_trigObject[2]);
             t->SetBranchAddress("HLT_PAJet80_NoJetID_v1_trigObject",&HLT_PAJet_NoJetID_v1_trigObject[3]);
             t->SetBranchAddress("HLT_PAJet100_NoJetID_v1_trigObject",&HLT_PAJet_NoJetID_v1_trigObject[4]);
             t->SetBranchAddress("HLT_PAJet120_NoJetID_v1_trigObject",&HLT_PAJet_NoJetID_v1_trigObject[5]); 
-
-
+            */
+            t->SetBranchAddress("hiHFplusEta4",&hiHFplusEta4);
             t->SetBranchAddress("pPAcollisionEventSelectionPA",&pPAcollisionEventSelectionPA);
             t->SetBranchAddress("pHBHENoiseFilter",&pHBHENoiseFilter);
-            t->SetBranchAddress("pprimaryvertexFilter",&pprimaryvertexFilter);
+            t->SetBranchAddress("pprimaryVertexFilter",&pprimaryvertexFilter);
         }
 
         Long64_t nentries = t->GetEntries();
 
         int gspCounter=0;
         bool quickChk=false;
+	cout << "file entries: "<< nentries << endl;
+	t_pthatFile = ifile;
 
-        //nentries=10;
-        for (Long64_t i=0; i<nentries;i++) {
+        //nentries=300;
+        for (Long64_t i=0; i<nentries; i++) {
 
+		//cout << "entry: "<< i << endl;
             if (i%100000==0) cout<<" i = "<<i<<" out of "<<nentries<<" ("<<(int)(100*(float)i/(float)nentries)<<"%)"<<endl; 
             tSkim->GetEntry(i);
             t->GetEntry(i);
-            if(ppPbPb && isMC){
+	
+	    if(ppPbPb && isMC){
                 // temporarily remove cuts from MC
                 if(!pvSel||!spikeSel) continue; //hbheNoise doesn't work in mixed events
             }
@@ -1311,25 +1445,29 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                     continue;
                 }
             }
-            
-            if(!isMC && removeMisalignedRuns){
-                if(run>=210498 && run<=210658){
-                    continue;
-                }
+
+            //Cut to remove events that correspond to the twiki "good events" but not the golden lumi filter
+            if(!isMC){
+                if(((int)run==211821 && lumi>=57 && lumi<370) || ((int)run==211821 && lumi>420)) continue;
             }
 
             if(!ppPbPb){
                 if(!isMC){
-            //        if(!pHBHENoiseFilter || !pprimaryvertexFilter || !pPAcollisionEventSelectionPA) continue;
+                    if(!pHBHENoiseFilter || !pprimaryvertexFilter || !pPAcollisionEventSelectionPA){
+//                        cout<<" selection failed, pvSel="<<pprimaryvertexFilter<<", hbheNoiseSel="<<pHBHENoiseFilter<<" , collSell="<<pPAcollisionEventSelectionPA<<endl;
+                        continue;
+                    }
+                    else t_evtSelection = 1;
+                }
+                else{
+                    //if(!pHBHENoiseFilter) continue; // || !pprimaryvertexFilter || !pPAcollisionEventSelectionPA) continue;
                 }
             }
-            if(!pHBHENoiseFilter || !pprimaryvertexFilter || !pPAcollisionEventSelectionPA) evtSelection=0;
-            else evtSelection=1;
 
             if(doMinBias){ if(!HLT_PAZeroBiasPixel_SingleTrack_v1) continue;}
 
             //else if(!HLT_PAJet100_NoJetID_v1) continue;
-            else if(!HLT_PAJet20_NoJetID_v1 && !HLT_PAJet40_NoJetID_v1 && !HLT_PAJet60_NoJetID_v1 && !HLT_PAJet80_NoJetID_v1 && !HLT_PAJet100_NoJetID_v1) continue;
+            else if(!isMC && !HLT_PAJet20_NoJetID_v1 && !HLT_PAJet40_NoJetID_v1 && !HLT_PAJet60_NoJetID_v1 && !HLT_PAJet80_NoJetID_v1 && !HLT_PAJet100_NoJetID_v1) continue;
 
             if(ppPbPb){
                 if(cbin==-1){
@@ -1350,11 +1488,8 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                 }
             }
             t_bin=bin;
-            if(bin==-1) t_bin=39;
-
-            if(isMC&&!ppPbPb){
-                if(beamId1==2112 || beamId2==2112)  continue;
-            }
+            t_vz = vz;
+	    if(bin==-1) t_bin=39;
 
             if(ppPbPb){
                 if(jetTrig==1&&!hltBit[10]) continue;
@@ -1363,7 +1498,6 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
 
             if(fabs(vz)>15.){
                 vzReject++; 
-              //  continue;
             }
             else vzPass++;
 
@@ -1374,53 +1508,52 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                 continue;
             }
             bool isNoise=false;
-            if(ppPbPb){
-                for(int ij=0; ij<nref; ij++){	  
-                    if(jtpt[ij]>4000&&fabs(jteta[ij])<2) cout<<" mupt "<<mupt[0]<<" muptPF "<<muptPF[0]<<endl;
-                    if(jtpt[ij]>minJetPt&&fabs(jteta[ij])<2){
-                        if(neutralMax[ij]/(neutralMax[ij]+chargedMax[ij]+photonMax[ij])>0.975){
-                            cout<<" cleaning event with jet of  "<<jtpt[ij]<<", eta "<<jteta[ij]<<" noise = "<<neutralMax[ij]/(neutralMax[ij]+chargedMax[ij]+photonMax[ij])<<endl;
-                            isNoise=true;
-                        }
-                        if(muptPF[ij]>10&&mupt[ij]/muptPF[ij]<0.75){
-                            cout<<" cleaning event with jet of  "<<jtpt[ij]<<", eta "<<jteta[ij]<<" muptPF = "<<muptPF[ij]<<" mupt "<<mupt[ij]<<endl;
-                            isNoise=true;
-                        }
-                        if(chargedSum[ij]+photonSum[ij]+neutralSum[ij]+muSum[ij]+eSum[ij]<0.5*rawpt[ij]){
-                            cout<<" cleaning event with jet of  "<<jtpt[ij]<<", eta "<<jteta[ij]<<" sum PF pt = "<<chargedSum[ij]+photonSum[ij]+neutralSum[ij]+muSum[ij]+eSum[ij]<<endl;
-                            isNoise=true;
-                        }
-                    }
+            for(int ij=0; ij<nref; ij++){	  
+                if(jtpt[ij]>minJetPt&&fabs(jteta[ij])<2){
+                    nJets++;
+                    //if(neutralMax[ij]/(TMath::Max(neutralMax[ij],chargedMax[ij]))>0.975){
+                        // cout<<" cleaning event with jet of  "<<jtpt[ij]<<", eta "<<jteta[ij]<<" noise = "<<neutralMax[ij]/(neutralMax[ij]+chargedMax[ij]+photonMax[ij])<<endl;
+                       // isNoise=true;
+                    //}
+                    /*if(muptPF[ij]>10&&mupt[ij]/muptPF[ij]<0.75){
+                      cout<<" cleaning event with jet of  "<<jtpt[ij]<<", eta "<<jteta[ij]<<" muptPF = "<<muptPF[ij]<<" mupt "<<mupt[ij]<<endl;
+                      isNoise=true;
+                      }*/
+                      if(chargedSum[ij]+photonSum[ij]+neutralSum[ij]+muSum[ij]+eSum[ij]<0.5*rawpt[ij]){
+                      //cout<<" cleaning event with jet of  "<<jtpt[ij]<<", eta "<<jteta[ij]<<" sum PF pt = "<<chargedSum[ij]+photonSum[ij]+neutralSum[ij]+muSum[ij]+eSum[ij]<<endl;
+                      isNoise=true;
+                      nRemoved++;
+                      }
                 }
             }
-            if(isNoise) continue;
+//            if(!isMC && isNoise) continue;
 
 
-            if(!isMC&&ppPbPb&&jetTrig<2){
-                tmu->GetEntry(i);
+	    if(!isMC&&ppPbPb&&jetTrig<2){
+		    tmu->GetEntry(i);
 
-                bool foundEvt = false;
-                for(int irun=0;irun<6;irun++){       
-                    if(run==dupRuns[irun]) {
-                        // binary search does not give the right behavior for some reason
-                        //if(binary_search(usedEvents[irun].begin(), usedEvents[irun].end(), evt)) {
-                        // use the slower find instead
-                        std::vector<int>::iterator it;
-                        // iterator to vector element:
-                        it = find (usedEvents[irun].begin(), usedEvents[irun].end(), evt);
-                        if(it!=usedEvents[irun].end()){
+		    bool foundEvt = false;
+		    for(int irun=0;irun<6;irun++){       
+			    if(run==dupRuns[irun]) {
+				    // binary search does not give the right behavior for some reason
+				    //if(binary_search(usedEvents[irun].begin(), usedEvents[irun].end(), evt)) {
+				    // use the slower find instead
+				    std::vector<int>::iterator it;
+				    // iterator to vector element:
+				    it = find (usedEvents[irun].begin(), usedEvents[irun].end(), evt);
+				    if(it!=usedEvents[irun].end()){
 
-                            nDup++;
-                            foundEvt = true;
-                            //cout<< " duplicate event, run: "<<run<<" evt: "<<evt<<endl;
-                            break;
-                        }
-                        usedEvents[irun].push_back(evt);
-                    }
-                    }
+					    nDup++;
+					    foundEvt = true;
+					    //cout<< " duplicate event, run: "<<run<<" evt: "<<evt<<endl;
+					    break;
+				    }
+				    usedEvents[irun].push_back(evt);
+			    }
+			}
 
-                    if(foundEvt) continue;
-                }
+			if(foundEvt) continue;
+		}
 
                 if(useWeight){
                     if(isMC)w=weight;
@@ -1441,26 +1574,40 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
 
                 //Do the weighting = x-sec / Nentries, where Nentries is weighted differently for B/C jets and QCD jets
                 if(isMC){
-                    t_pthat=pthat;
-                    int j=0;
-                    while(pthat>pthatbin[j] && j<9) j++;
-                    w = ((wght[j-1]-wght[j])/MCentr[j]); //wght[0] = pthat>15, MCentr[0] = pthat<15.  I know it's dumb - bear with me.
+			t_pthat=pthat;
+			int j=0;
+			//if(pthat<30) w=0;
+			while(pthat>=pthatbin[j]) j++;
+                        w = ((wght[j-1]-wght[j])/MCentr[j]); //wght[0] = pthat>15, MCentr[0] = pthat<15.  I know it's dumb - bear with me.
+			//w = ((wght[j-1]-wght[j])/nentries);
+			//if(pthat>300) std::cout << "pthat: "<< t_pthat << " between: "<< pthatbin[j-1] << " and " << pthatbin[j] << ", xsecs: "<< wght[j-1] << " and " << wght[j] << " MCentr: " << MCentr[j] << std::endl;
+			
+		}
+		if(isMC){
+			//you can uncomment this bit to reweight based on mc/data vz as well
+			bool isFiltered=0;
+			if(isMC>1) isFiltered=1;
+			double vzWeightT=1.;
+			if(dopPb) vzWeightT = fVz->Eval(vz);
+			else vzWeightT = fVz->Eval(vz);
+			double centWeightT=1.;
+			centWeightT = fCen->Eval(bin); //fCent->GetBinContent(fCent->FindBin(bin));
+			//int vzbin = (int) TMath::Ceil(vz+15.+0.4);  // 0.4 is the pixel detector shift
+			//if(vzbin>0&&vzbin<=30)vzWeight = hDatavz->GetBinContent(vzbin)/hMCvz[isFiltered]->GetBinContent(vzbin);
+			//cout << "vz: "<< vz<< " weight: "<< vzWeightT << endl;
+                        w*=vzWeightT*centWeightT;
 
-                    //you can uncomment this bit to reweight based on mc/data vz as well
-                    bool isFiltered=0;
-                    if(isMC>1) isFiltered=1;
-                    double vzWeightT = fVz->Eval(vz); 
-                    //int vzbin = (int) TMath::Ceil(vz+15.+0.4);  // 0.4 is the pixel detector shift
-                    //if(vzbin>0&&vzbin<=30)vzWeight = hDatavz->GetBinContent(vzbin)/hMCvz[isFiltered]->GetBinContent(vzbin);
-                    w*=vzWeightT;	  
-                }
+			evtPthat = pthat;
+			evtWeight = w;
+			ntEvt->Fill();		  
+		}
 
                 int useEvent=0;
 
                 int trackPosition =0;
 
                 bool trgDec[5] = {(bool)HLT_PAJet20_NoJetID_v1, (bool)HLT_PAJet40_NoJetID_v1, (bool)HLT_PAJet60_NoJetID_v1, (bool)HLT_PAJet80_NoJetID_v1, (bool)HLT_PAJet100_NoJetID_v1};
-                bool L1treePrescl[5] = {(bool)L1_SingleJet16_BptxAND_Prescl, (bool)L1_SingleJet16_BptxAND_Prescl, (bool)L1_SingleJet36_Prescl, (bool)L1_SingleJet36_Prescl, (bool)L1_SingleJet36_Prescl};
+                int L1treePrescl[5] = {(bool)L1_SingleJet16_BptxAND_Prescl, (bool)L1_SingleJet16_BptxAND_Prescl, (bool)L1_SingleJet36_Prescl, (bool)L1_SingleJet36_Prescl, (bool)L1_SingleJet36_Prescl};
                 if(L1treePrescl[0] >1 || L1treePrescl[1] > 1) cout << "L1 ps > 1!: " << L1treePrescl[0] << endl;
                 if(!quickChk){
                     jet20pscl+=HLT_PAJet20_NoJetID_v1_Prescl;
@@ -1469,15 +1616,24 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                     jet80pscl+=HLT_PAJet80_NoJetID_v1_Prescl;
                     jet100pscl+=HLT_PAJet100_NoJetID_v1_Prescl;
                     nn++;
+                    //cout << "ps20: "<< HLT_PAJet20_NoJetID_v1_Prescl << endl;
+                    //cout << "ps40: "<< HLT_PAJet40_NoJetID_v1_Prescl << endl;
+                    //cout << "ps60: "<< HLT_PAJet60_NoJetID_v1_Prescl << endl;
+                    //cout << "ps80: "<< HLT_PAJet80_NoJetID_v1_Prescl << endl;
+                    //cout << "ps100: "<< HLT_PAJet100_NoJetID_v1_Prescl << endl;
+                    //quickChk=true;
                 }
 
-                double treePrescl[5] = {HLT_PAJet20_NoJetID_v1_Prescl, HLT_PAJet40_NoJetID_v1_Prescl, HLT_PAJet60_NoJetID_v1_Prescl, HLT_PAJet80_NoJetID_v1_Prescl, HLT_PAJet100_NoJetID_v1_Prescl};
+                int treePrescl[5] = {HLT_PAJet20_NoJetID_v1_Prescl, HLT_PAJet40_NoJetID_v1_Prescl, HLT_PAJet60_NoJetID_v1_Prescl, HLT_PAJet80_NoJetID_v1_Prescl, HLT_PAJet100_NoJetID_v1_Prescl};
 
                 //account for occasional variation between L1 seed prescale factors.
                 for(int ipscl=0; ipscl<5; ipscl++){ 
                     treePrescl[ipscl] *= L1treePrescl[ipscl]; 
                     //pscls[ipscl] *= L1treePrescl[ipscl];
                 }
+
+                //this is ALL OBSOLETE CODE...
+                /****
                 double trigPt[5][100];
                 double trigEta[5][100];
                 double trigPhi[5][100];
@@ -1492,6 +1648,52 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                         trigPhi[ii][iObj] = HLT_PAJet_NoJetID_v1_trigObject[ii]->at(iObj).phi();
                     }
                 }
+                //Protection against random trigger benefit
+                int maxtrg= -1;
+                for(int ii=4; ii>=0; ii--){
+                    if(trgDec[ii]==1){
+                        maxtrg=ii;
+                        break;
+                    }
+                }
+
+                //ensure trigger objects of fired triggers are the same!
+                for(int ii=0; ii<5; ii++){
+                    if(trgDec[ii]){
+                        for(int jj=ii; jj<5; jj++){
+                            if(trgDec[jj]){
+                                    //for(unsigned int iObj=0; iObj<trgObjSize[ii]; iObj++){
+                                        if(trigPt[ii][0] != trigPt[jj][0]){
+                                            cout << "Trgobj pt's are different for trgs: Jet " << ii*20 << " and Jet " << jj*20 << "!!!" << endl;
+                                            cout << "trigPt's: "<< trigPt[ii][0] << " and " << trigPt[jj][0] << endl;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    //}
+                //}
+
+                float maximumTrgPt=0;
+                bool rtBenefitFlag=0;
+                for(int ii=0; ii<5; ii++){
+                    if(trgDec[ii]){
+                        for(unsigned int iObj=0; iObj<trgObjSize[ii]; iObj++){
+                            if(trigPt[ii][iObj]>=(20+maxtrg*20)) rtBenefitFlag=1;
+                            if(trigPt[ii][iObj]>maximumTrgPt) maximumTrgPt = trigPt[ii][iObj];
+                        }
+                    }
+                }
+                if(!isMC && (maxtrg==-1 || !rtBenefitFlag)){
+                    cout << "event skipped from RT!" << endl;
+                    cout << "maxtrg: " << (20+20*maxtrg) << endl;
+                    cout << "trgPt: " << maximumTrgPt << endl;
+                    continue;
+                }
+                //end rtbenefit protection
+
+                std::set<int> usedObjNos;
+                std::set<int> usedtrgNos;
 
                 //Get all unmatched triggerPt values for ntTrg
                 for(int ii=0; ii<5; ii++){
@@ -1503,33 +1705,33 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                             }
                         }
                     }
-                }
+                }*/
 
                 //run the correct L2L3 JECs for Pbp data...
-                if(updateJEC && run>211300 && run<211800 && !isMC){
+                /*if(updateJECn&& run>211300 && run<211800 && !isMC){
                     for(int ij=0; ij<nref; ij++){
+			cout << "raw pt: "<< rawpt[ij] << endl;
                         JEC_HI53x->setJetEta(jteta[ij]);
                         JEC_HI53x->setJetPt(rawpt[ij]);
-                        jtpt[ij] = rawpt[ij]*JEC_HI53x->getCorrection();
+                        float jetcorr = JEC_HI53x->getCorrection(); 
+			jtpt[ij] = rawpt[ij]*jetcorr;
+			//cout << "correction: "<< jetcorr << endl;
+			//cout << "new jetpt: "<< jtpt[ij] << endl;
                     }
-                }
-
-                double maxtriggerPt=0;
-                double topPt=0;
-		// REVISED WEIGHTING METHOD 3-12-14 *~*~*~* SWITCH TO Evt-by-Evt WEIGHTING
-                //loop through fired triggers from low to high and pick out the highest triggerPt
-                for(int ii=0; ii<5; ii++){
-                    if(trgDec[ii]){
-                        for(int isize=0; isize<trgObjSize[ii]; isize++){
-                            double tPt = HLT_PAJet_NoJetID_v1_trigObject[ii]->at(isize).pt();
-                            if(tPt > maxtriggerPt && (tPt-TMath::Floor(tPt)) > 0.0001){ // check against integer (L1) trigger pT values
-                                maxtriggerPt = tPt;
-                            }
-                        }
-                    }      
-                }
+                }*/
 
                 for(int ij=0; ij<nref; ij++){
+
+		   /*if(updateJEC && run>211300 && !isMC){
+			//cout << "raw pt: "<< rawpt[ij] << endl;
+                        JEC_HI53x->setJetEta(jteta[ij]);
+                        JEC_HI53x->setJetPt(rawpt[ij]);
+                        float jetcorr = JEC_HI53x->getCorrection();
+                        jtpt[ij] = rawpt[ij]*jetcorr;
+                        //cout << "correction: "<< jetcorr << endl;
+                        //cout << "new jetpt: "<< jtpt[ij] << endl;
+		    }*/
+
                     trackPosition+=nselIPtrk[ij];
 
                     if(useGSP==2){
@@ -1549,26 +1751,16 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                     float etashift = 0.;
                     if(run>210497 && run<211300) etashift = 0.465;
                     if(run>211300 && run<211800) etashift = -0.465;
-                    if(isMC) etashift = 0.465;
+                    if(isMC && dopPb) etashift = 0.465;
+		    if(isMC && !dopPb) etashift = -0.465;
 
-                    //apply doga's eta/pt dependent secondary jec's
-                    //These should not close in MC - they were derived with tag and probe methods from data!
-                    if(!isMC && doResCorr){
-                        double tmppt=0;
-                        if(run>210497 && run<211300) tmppt = jtpt[ij]*c_eta->GetBinContent(c_eta->FindBin(jteta[ij]));
-                        else if(run>211300 && run<211800) tmppt = jtpt[ij]*c_eta_rev->GetBinContent(c_eta_rev->FindBin(jteta[ij]));
-                        tmppt *= fcorr->Eval(jtpt[ij]);
-                        if(jtpt[ij]==topPt) topPt = tmppt;
-                        jtpt[ij] = tmppt;
-                    }
-                
-                    triggerPt=0;
-                    double w2=0;
+                    triggerPt=maxTrgPt;
                     //select jets in lab eta, but then fill eta_CM for analysis
-                    if(jtpt[ij]>minJetPt && fabs(jteta[ij])<maxJetEta){ 
+                    if(jtpt[ij]>minJetPt && fabs(jteta[ij])<maxJetEta){
+                        if(isMC && rawpt[ij]<minRawPt) continue;
                         //reweight jet-by-jet as demanded by the new STAR weighting algorithm
                         if(!doMinBias && !ppPbPb && !isMC){
-                            if(useJetTrgAssociation){
+                            /*if(useJetTrgAssociation){
                                 for(int ii=0; ii<5; ii++){
                                     if(trgDec[ii]){
                                         triggerPt = triggerMatch(trgObjSize[ii], trigPhi[ii], trigEta[ii], trigPt[ii], jtphi[ij], jteta[ij], jtpt[ij], dTrgEta, dTrgPhi);
@@ -1581,35 +1773,51 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                             }
                             else{
                                 triggerPt = jtpt[ij];
-                            //      triggerPt = topPt;
-                            }
+                            }*/
                             //w = trigComb(trgDec, pscls, triggerPt);
-                            w = trigComb(trgDec, treePrescl, maxtriggerPt, 6);
-                            w2 = trigComb(trgDec, treePrescl, jtpt[ij],1);
+                            //w = trigComb(trgDec, treePrescl, maximumTrgPt);
+                            w = trigComb(trgDec, treePrescl, maxTrgPt);
                         }
-                        else if(doMinBias){
+                        else if(doMinBias && !isMC){
                             w = HLT_PAZeroBiasPixel_SingleTrack_v1_Prescl*L1_ZeroBias_Prescl;
                         }
                         t_weight=w;
-                        
-                        if(evtSelection && abs(vz)<15) hyaxian->Fill(jtpt[ij],w2);
-                        
+
                         if(doNtuples){
                             t_run = run;
-                            t_jtpt = jtpt[ij];
-                            if(run>210497 && run<211300) t_jteta=jteta[ij]+etashift;
-                            else if(run>211300 && run<211800) t_jteta= -1*(jteta[ij]+etashift); //reverse the eta to achieve CNM effect consistency
+
+                            //apply doga's eta/pt dependent secondary jec's
+                            //These should not close in MC - they were derived with tag and probe methods from data!
+                            if(!isMC){
+                                if(run>210497 && run<211300) t_jtpt = jtpt[ij]*c_eta->GetBinContent(c_eta->FindBin(jteta[ij]));
+                                else if(run>211300 && run<211800) t_jtpt = jtpt[ij]*c_eta_rev->GetBinContent(c_eta_rev->FindBin(jteta[ij]));
+                                t_resCorr = fcorr->Eval(jtpt[ij]);
+                            }
+                            else t_jtpt = jtpt[ij];
+                            //t_jtpt = jtpt[ij];
+                            t_jteta=jteta[ij]+etashift;
                             t_jtphi=jtphi[ij];
                             t_rawpt=rawpt[ij];
-                            t_refpt=refpt[ij];
-                            t_refparton_flavorForB=refparton_flavorForB[ij];
+			    t_refpt=refpt[ij];
+			    t_refparton_flavorForB=refparton_flavorForB[ij];
                             t_discr_prob=discr_prob[ij];
                             t_discr_ssvHighEff=discr_ssvHighEff[ij];
                             t_discr_ssvHighPur=discr_ssvHighPur[ij];
                             t_discr_csvSimple=discr_csvSimple[ij];
                             t_svtxm=svtxm[ij];
-                            t_maxTrgPt=maxtriggerPt;
-                            //Find jet tracks that correspond to the jet & apply proximity cuts
+			    t_svtxm=svtxm[ij];
+                            t_nsvtx=nsvtx[ij];
+                            t_svtxntrk=svtxntrk[ij];
+                            t_svtxdl=svtxdl[ij];
+                            t_svtxdls=svtxdls[ij];
+                            t_nIPtrk=nIPtrk[ij];
+                            t_nselIPtrk=nselIPtrk[ij];
+                            t_subid = subid[ij];
+                            t_chargedMax = chargedMax[ij];
+                            t_chargedSum = chargedSum[ij];
+                            t_neutralMax = neutralMax[ij];
+                            t_neutralSum = neutralSum[ij];
+			    //Find jet tracks that correspond to the jet & apply proximity cuts
                             if(ExpandedTree){
                                 t_nIP=nselIPtrk[ij];
                                 int counter=0;
@@ -1637,7 +1845,7 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                             //muon requirement
                             if (sqrt(acos(cos(jtphi[ij]-muphi[ij]))*acos(cos(jtphi[ij]-muphi[ij]))+(jteta[ij]-mueta[ij])*(jteta[ij]-mueta[ij]))>0.5 || mupt[ij]<minMuPt) continue;
                         }
-
+                    
                         useEvent=1;
 
                         if(rawpt[ij]>25 && t_jtpt>80){
@@ -1655,11 +1863,11 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                                 else if(abs(refparton_flavorForB[ij])==4)hrawptC->Fill(rawpt[ij],w);    
                                 else if(abs(refparton_flavorForB[ij])<99)hrawptL->Fill(rawpt[ij],w);    
                             }
-                            hjteta->Fill(jteta[ij]+etashift,w);    
+                            hjteta->Fill(jteta[ij],w);    
                             if(isMC){
-                                if(abs(refparton_flavorForB[ij])==5)hjtetaB->Fill(jteta[ij]+etashift,w);    
-                                else if(abs(refparton_flavorForB[ij])==4)hjtetaC->Fill(jteta[ij]+etashift,w);    
-                                else if(abs(refparton_flavorForB[ij])<99)hjtetaL->Fill(jteta[ij]+etashift,w);    
+                                if(abs(refparton_flavorForB[ij])==5)hjtetaB->Fill(jteta[ij],w);    
+                                else if(abs(refparton_flavorForB[ij])==4)hjtetaC->Fill(jteta[ij],w);    
+                                else if(abs(refparton_flavorForB[ij])<99)hjtetaL->Fill(jteta[ij],w);    
                             }
                             hjtphi->Fill(jtphi[ij],w);    
                             if(isMC){
@@ -2054,13 +2262,15 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
                     }
 
                     //reset event-level containers
-                    for(int ii=0; ii<5; ii++){ HLT_PAJet_NoJetID_v1_trigObject[ii]->clear(); } 
+                    //usedObjNos.clear();
+                    //usedtrgNos.clear();
+                    //for(int ii=0; ii<5; ii++){ HLT_PAJet_NoJetID_v1_trigObject[ii]->clear(); } 
                 } 
 
                 //close file before moving to the next one!!
                 fin->Close();
             }
-            cout << "vz Pass: " << vzPass << endl;
+            /*cout << "vz Pass: " << vzPass << endl;
             cout << "vz Fail: " << vzReject << endl;
             cout << "vzEff: "<< (double)vzPass/((double)vzPass+(double)vzReject) << endl;
 
@@ -2069,10 +2279,8 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
             cout << "jet60pscl: "<< (double)jet60pscl/(double)nn << endl;
             cout << "jet80pscl: "<< (double)jet80pscl/(double)nn << endl;
             cout << "jet100pscl: "<< (double)jet100pscl/(double)nn << endl;
-
+*/
             fout->cd();
-
-            hyaxian->Write();
 
             hbin->Write(); hbinw->Write(); hvz->Write(); hvzw->Write();
 
@@ -2218,7 +2426,9 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
             nt->Write();
             ntTrg->Write();
             ntMuReq->Write();
+	    ntEvt->Write();
 
             fout->Close();
 
-        }
+    cout << "jet cleaning cuts removed "<< nRemoved << " of " << nJets << " or " << (float)nRemoved/(float)nJets*100 << "%" << endl;
+    }
