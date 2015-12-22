@@ -1250,7 +1250,7 @@ void analyzeTrees(const int startfile=0, const int endfile=1, int isRecopp=1, in
         if(tHlt) t->AddFriend("hltanalysis/HltTree");
         if(tSkim) t->AddFriend("skimanalysis/HltTree");
 
-        if(isMC){
+        if(!isMC){
             t->AddFriend("hltobject/jetObjTree");
             t->SetBranchAddress("pt",&maxTrgPt);
         }
